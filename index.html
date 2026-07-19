@@ -10,129 +10,239 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
 <style>
 :root{
-  --ink:#050607;
-  --phosphor:#EAE6DC;
-  --dim:#7d7a72;
-  --cyan:#59E3D8;
-  --magenta:#FF4D8F;
-  --amber:#FFC24B;
+  --ink:#050607;--phosphor:#EAE6DC;--dim:#7d7a72;
+  --cyan:#59E3D8;--magenta:#FF4D8F;--amber:#FFC24B;
   --line:rgba(234,230,220,.14);
-  --mono:'Space Mono',monospace;
-  --disp:'Bricolage Grotesque',sans-serif;
+  --mono:'Space Mono',monospace;--disp:'Bricolage Grotesque',sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
-body{
-  background:var(--ink);
-  color:var(--phosphor);
-  font-family:var(--mono);
-  overflow:hidden;
-  -webkit-font-smoothing:antialiased;
-}
-body::before{
-  content:"";position:fixed;inset:0;z-index:9;pointer-events:none;
-  background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);
-  mix-blend-mode:multiply;
-}
-body::after{
-  content:"";position:fixed;inset:0;z-index:10;pointer-events:none;
-  background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.55) 100%);
-}
+body{background:var(--ink);color:var(--phosphor);font-family:var(--mono);overflow:hidden;-webkit-font-smoothing:antialiased;cursor:crosshair}
+/* CRT */
+body::before{content:"";position:fixed;inset:0;z-index:9;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+body::after{content:"";position:fixed;inset:0;z-index:10;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.55) 100%)}
 .grain{position:fixed;inset:-50%;z-index:8;pointer-events:none;opacity:.05;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation:grain 7s steps(10) infinite;}
+  animation:grain 7s steps(10) infinite}
 @keyframes grain{0%,100%{transform:translate(0,0)}20%{transform:translate(-4%,3%)}40%{transform:translate(3%,-5%)}60%{transform:translate(-3%,4%)}80%{transform:translate(4%,2%)}}
-.frame{position:fixed;inset:0;display:flex;flex-direction:column;padding:clamp(14px,2.5vw,32px)}
+/* rolling scanline sweep */
+.sweep{position:fixed;left:0;right:0;height:120px;z-index:9;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(89,227,216,.06),transparent);
+  animation:sweep 6s linear infinite}
+@keyframes sweep{0%{top:-140px}100%{top:110vh}}
+/* static burst overlay */
+.static{position:fixed;inset:0;z-index:15;pointer-events:none;opacity:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23s)'/%3E%3C/svg%3E");
+  mix-blend-mode:screen}
+/* rgb-split whole-screen shake helper */
+.frame{position:fixed;inset:0;display:flex;flex-direction:column;padding:clamp(14px,2.5vw,32px);will-change:transform,filter}
 .hud{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 .hud .rec{display:flex;align-items:center;gap:8px;color:var(--phosphor)}
 .rec i{width:9px;height:9px;border-radius:50%;background:var(--magenta);display:inline-block;animation:blink 1.2s steps(1) infinite}
 @keyframes blink{50%{opacity:.15}}
 .hud .tc{color:var(--cyan)}
-.stage{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:clamp(20px,4vh,44px);position:relative}
+.stage{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:clamp(20px,4vh,44px);position:relative;perspective:900px}
 .eyebrow{font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:var(--dim)}
 .eyebrow b{color:var(--amber);font-weight:400}
-.wordmark{
-  font-family:var(--disp);
-  font-weight:750;
-  font-size:clamp(52px,12vw,170px);
-  line-height:.92;
-  letter-spacing:-.03em;
-  position:relative;
-  color:var(--phosphor);
-}
-.wordmark .thin{font-weight:300;font-style:italic}
-.wordmark::before,.wordmark::after{
-  content:attr(data-t);position:absolute;inset:0;pointer-events:none;
-}
-.wordmark::before{color:var(--cyan);transform:translate(-3px,0);opacity:.55;mix-blend-mode:screen;animation:gl1 3.4s infinite}
-.wordmark::after{color:var(--magenta);transform:translate(3px,0);opacity:.55;mix-blend-mode:screen;animation:gl2 3.4s infinite}
-@keyframes gl1{0%,92%,100%{clip-path:inset(0 0 100% 0)}93%{clip-path:inset(10% 0 55% 0)}95%{clip-path:inset(60% 0 5% 0)}97%{clip-path:inset(30% 0 40% 0)}}
-@keyframes gl2{0%,92%,100%{clip-path:inset(100% 0 0 0)}94%{clip-path:inset(50% 0 20% 0)}96%{clip-path:inset(5% 0 80% 0)}98%{clip-path:inset(70% 0 10% 0)}}
+.wordmark{font-family:var(--disp);font-weight:750;font-size:clamp(52px,12vw,170px);line-height:.92;letter-spacing:-.03em;position:relative;color:var(--phosphor);will-change:transform;transform-style:preserve-3d}
+.wordmark .ch{display:inline-block;will-change:transform,opacity}
+.wordmark .thin .ch{font-weight:300;font-style:italic}
+.wordmark::before,.wordmark::after{content:attr(data-t);position:absolute;inset:0;pointer-events:none}
+.wordmark::before{color:var(--cyan);transform:translate(-3px,0);opacity:.5;mix-blend-mode:screen;animation:gl1 3.4s infinite}
+.wordmark::after{color:var(--magenta);transform:translate(3px,0);opacity:.5;mix-blend-mode:screen;animation:gl2 3.4s infinite}
+@keyframes gl1{0%,88%,100%{clip-path:inset(0 0 100% 0)}90%{clip-path:inset(10% 0 55% 0)}93%{clip-path:inset(60% 0 5% 0)}96%{clip-path:inset(30% 0 40% 0)}}
+@keyframes gl2{0%,88%,100%{clip-path:inset(100% 0 0 0)}91%{clip-path:inset(50% 0 20% 0)}94%{clip-path:inset(5% 0 80% 0)}97%{clip-path:inset(70% 0 10% 0)}}
 .tag{max-width:52ch;font-size:clamp(13px,1.6vw,16px);line-height:1.8;color:var(--dim)}
 .tag em{color:var(--phosphor);font-style:normal}
-.bars{display:flex;width:min(560px,80vw);height:14px;border:1px solid var(--line)}
-.bars span{flex:1;transform-origin:bottom;animation:pulse 2.6s ease-in-out infinite}
+.tag .w{display:inline-block;will-change:transform,opacity}
+/* dancing bars */
+.bars{display:flex;width:min(560px,80vw);height:22px;border:1px solid var(--line);align-items:flex-end}
+.bars span{flex:1;height:100%;transform-origin:bottom;will-change:transform}
 .bars span:nth-child(1){background:#c8c4ba}.bars span:nth-child(2){background:var(--amber)}
 .bars span:nth-child(3){background:var(--cyan)}.bars span:nth-child(4){background:#3fae62}
 .bars span:nth-child(5){background:var(--magenta)}.bars span:nth-child(6){background:#d64541}
 .bars span:nth-child(7){background:#4a5bd4}
-.bars span:nth-child(odd){animation-delay:.4s}
-@keyframes pulse{0%,100%{opacity:.85}50%{opacity:.45}}
+.hint{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim);opacity:.6}
 .foot{display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
-.foot a{color:var(--phosphor);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:2px;transition:border-color .3s,color .3s}
+.foot a{color:var(--phosphor);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:2px;transition:color .3s,border-color .3s;display:inline-block;will-change:transform}
 .foot a:hover,.foot a:focus-visible{color:var(--cyan);border-color:var(--cyan);outline:none}
 .status{display:flex;gap:6px;align-items:center}
 .status i{width:7px;height:7px;background:var(--cyan);display:inline-block;animation:blink 2s steps(1) infinite}
-.boot{position:fixed;inset:0;background:var(--ink);z-index:20;display:flex;align-items:center;justify-content:center;font-size:12px;letter-spacing:.3em;color:var(--dim);text-transform:uppercase;transition:opacity .6s,visibility .6s}
-.boot.done{opacity:0;visibility:hidden}
-@media (max-width:600px){
-  .hud span.hide-m,.foot span.hide-m{display:none}
-}
+/* boot terminal */
+.boot{position:fixed;inset:0;background:var(--ink);z-index:20;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:8vw;font-size:12px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;gap:10px}
+.boot .ln{opacity:0}
+.boot .ln b{color:var(--cyan);font-weight:400}
+.boot .cur{display:inline-block;width:9px;height:14px;background:var(--phosphor);vertical-align:-2px;animation:blink .7s steps(1) infinite}
+/* channel flip flash */
+.flash{position:fixed;inset:0;background:#fff;z-index:14;pointer-events:none;opacity:0;mix-blend-mode:overlay}
+@media (max-width:600px){.hud span.hide-m,.foot span.hide-m{display:none}}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
+  .boot{display:none}.sweep,.static,.flash{display:none}
+  .wordmark .ch,.tag .w{opacity:1!important;transform:none!important}
 }
 </style>
 </head>
 <body>
 <div class="grain" aria-hidden="true"></div>
-<div class="boot" id="boot" aria-hidden="true">CALIBRATING SIGNAL…</div>
+<div class="sweep" aria-hidden="true"></div>
+<div class="static" id="static" aria-hidden="true"></div>
+<div class="flash" id="flash" aria-hidden="true"></div>
 
-<main class="frame">
+<div class="boot" id="boot" aria-hidden="true">
+  <div class="ln">&gt; NEXELITE BROADCAST SYSTEM <b>v2.0</b></div>
+  <div class="ln">&gt; LOADING PHOSPHOR DRIVERS… <b>OK</b></div>
+  <div class="ln">&gt; SYNCING COLOR BARS… <b>OK</b></div>
+  <div class="ln">&gt; LOCKING FREQUENCY 88.1 MHZ… <b>OK</b></div>
+  <div class="ln">&gt; SIGNAL ACQUIRED<span class="cur"></span></div>
+</div>
+
+<main class="frame" id="frame">
   <header class="hud">
     <span class="rec"><i></i>REC</span>
-    <span class="hide-m">CH·01 — NEXELITE MEDIA</span>
+    <span class="hide-m" id="ch">CH·01 — NEXELITE MEDIA</span>
     <span class="tc" id="tc">00:00:00:00</span>
   </header>
 
-  <section class="stage">
-    <p class="eyebrow">TEST TRANSMISSION — <b>BROADCAST BEGINS SOON</b></p>
-    <h1 class="wordmark" data-t="NEXELITE">NEX<span class="thin">ELITE</span></h1>
-    <p class="tag">A creative media agency tuning its own frequency.
+  <section class="stage" id="stage">
+    <p class="eyebrow" id="eyebrow">TEST TRANSMISSION — <b>BROADCAST BEGINS SOON</b></p>
+    <h1 class="wordmark" id="mark" data-t="NEXELITE"><span class="bold">NEX</span><span class="thin">ELITE</span></h1>
+    <p class="tag" id="tag">A creative media agency tuning its own frequency.
       <em>Influence. Create. Elevate.</em> The full picture arrives shortly —
       until then, enjoy the color bars.</p>
-    <div class="bars" role="img" aria-label="Broadcast test color bars">
+    <div class="bars" id="bars" role="img" aria-label="Broadcast test color bars">
       <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
+    <p class="hint">CLICK ANYWHERE TO CHANGE CHANNEL</p>
   </section>
 
   <footer class="foot">
     <span class="status"><i></i>STANDBY</span>
-    <a href="mailto:hello@nexelite.in">hello@nexelite.in</a>
+    <a href="mailto:hello@nexelite.in" id="mail">hello@nexelite.in</a>
     <span class="hide-m">© 2026 NEXELITE MEDIA</span>
   </footer>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
+const rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- timecode ---------- */
 const tc=document.getElementById('tc');const t0=performance.now();
-function tick(now){
-  const s=(now-t0)/1000;
-  const f=Math.floor((s%1)*25),ss=Math.floor(s)%60,mm=Math.floor(s/60)%60,hh=Math.floor(s/3600);
-  const p=n=>String(n).padStart(2,'0');
-  tc.textContent=`${p(hh)}:${p(mm)}:${p(ss)}:${p(f)}`;
+(function tick(now){
+  const s=(now-t0)/1000,p=n=>String(n).padStart(2,'0');
+  tc.textContent=`${p(Math.floor(s/3600))}:${p(Math.floor(s/60)%60)}:${p(Math.floor(s)%60)}:${p(Math.floor((s%1)*25))}`;
   requestAnimationFrame(tick);
+})(performance.now());
+
+/* ---------- split text ---------- */
+const mark=document.getElementById('mark');
+mark.querySelectorAll('span').forEach(sp=>{
+  sp.innerHTML=[...sp.textContent].map(c=>`<span class="ch">${c}</span>`).join('');
+});
+const chars=[...mark.querySelectorAll('.ch')];
+const tag=document.getElementById('tag');
+tag.innerHTML=tag.innerHTML.split(/(\s+)/).map(w=>/\S/.test(w)?`<span class="w">${w}</span>`:w).join('');
+const words=[...tag.querySelectorAll('.w')];
+const bars=[...document.querySelectorAll('#bars span')];
+
+if(!rm&&window.gsap){
+  gsap.set(chars,{opacity:0,yPercent:110,rotateX:-80});
+  gsap.set(words,{opacity:0,y:14});
+  gsap.set(bars,{scaleY:0});
+  gsap.set('#eyebrow,.hint,.hud>*,.foot>*',{opacity:0,y:-8});
+
+  /* ---------- boot sequence ---------- */
+  const boot=gsap.timeline();
+  boot.to('.boot .ln',{opacity:1,duration:.05,stagger:.45,ease:'none'})
+      .to('#boot',{opacity:0,duration:.4,delay:.5,onComplete:()=>document.getElementById('boot').remove()})
+      /* screen turn-on: vertical crush like an old TV */
+      .fromTo('#frame',{scaleY:.004,scaleX:1.15,filter:'brightness(4)'},
+        {scaleY:1,scaleX:1,filter:'brightness(1)',duration:.7,ease:'expo.out'},'<')
+      /* HUD + footer drop in */
+      .to('.hud>*,.foot>*',{opacity:1,y:0,duration:.5,stagger:.06,ease:'power2.out'},'-=.2')
+      .to('#eyebrow',{opacity:1,y:0,duration:.4},'-=.3')
+      /* wordmark: characters flip up with scramble */
+      .to(chars,{opacity:1,yPercent:0,rotateX:0,duration:.9,stagger:{each:.06,from:'random'},ease:'back.out(1.6)',
+        onStart(){chars.forEach(c=>scramble(c,c.textContent,700))}},'-=.2')
+      /* tagline word cascade */
+      .to(words,{opacity:1,y:0,duration:.5,stagger:.02,ease:'power2.out'},'-=.4')
+      /* bars rise */
+      .to(bars,{scaleY:1,duration:.6,stagger:.05,ease:'elastic.out(1,.5)'},'-=.4')
+      .to('.hint',{opacity:.6,y:0,duration:.5},'-=.2');
+
+  /* ---------- scramble helper ---------- */
+  function scramble(el,final,dur){
+    const glyphs='█▓▒░<>/\\|NEXELITE#*';const start=performance.now();
+    (function step(n){
+      if(n-start>dur){el.textContent=final;return}
+      el.textContent=glyphs[Math.floor(Math.random()*glyphs.length)];
+      requestAnimationFrame(step);
+    })(start);
+  }
+
+  /* ---------- ambient: bars dance forever ---------- */
+  bars.forEach((b,i)=>{
+    gsap.to(b,{scaleY:'random(0.25,1)',duration:'random(0.4,0.9)',repeat:-1,yoyo:true,
+      repeatRefresh:true,ease:'sine.inOut',delay:2.5+i*.1});
+  });
+
+  /* ---------- ambient: wordmark breathe + float ---------- */
+  gsap.to(mark,{y:-8,duration:3,repeat:-1,yoyo:true,ease:'sine.inOut',delay:3});
+
+  /* ---------- mouse parallax + 3D tilt ---------- */
+  const stage=document.getElementById('stage');
+  window.addEventListener('pointermove',e=>{
+    const x=e.clientX/innerWidth-.5,y=e.clientY/innerHeight-.5;
+    gsap.to(mark,{rotateY:x*14,rotateX:-y*10,x:x*30,duration:.6,ease:'power2.out'});
+    gsap.to('#bars',{x:x*-18,duration:.8,ease:'power2.out'});
+    gsap.to('#tag',{x:x*10,duration:.8,ease:'power2.out'});
+  });
+
+  /* ---------- magnetic email ---------- */
+  const mail=document.getElementById('mail');
+  mail.addEventListener('pointermove',e=>{
+    const r=mail.getBoundingClientRect();
+    gsap.to(mail,{x:(e.clientX-r.left-r.width/2)*.4,y:(e.clientY-r.top-r.height/2)*.6,duration:.3});
+  });
+  mail.addEventListener('pointerleave',()=>gsap.to(mail,{x:0,y:0,duration:.5,ease:'elastic.out(1,.4)'}));
+
+  /* ---------- channel change on click ---------- */
+  let ch=1;const chEl=document.getElementById('ch');
+  const idents=['NEXELITE MEDIA','INFLUENCE','CREATE','ELEVATE','STAY TUNED'];
+  document.addEventListener('click',e=>{
+    if(e.target.closest('a'))return;
+    ch=ch%99+Math.ceil(Math.random()*7);
+    chEl.textContent=`CH·${String(ch).padStart(2,'0')} — ${idents[Math.floor(Math.random()*idents.length)]}`;
+    burst(.9);
+    /* whole-frame jolt + rgb split feel */
+    gsap.fromTo('#frame',{x:()=>gsap.utils.random(-14,14),skewX:()=>gsap.utils.random(-6,6),filter:'hue-rotate(90deg) saturate(3)'},
+      {x:0,skewX:0,filter:'hue-rotate(0deg) saturate(1)',duration:.5,ease:'power3.out'});
+    gsap.fromTo('#flash',{opacity:.5},{opacity:0,duration:.35});
+    /* re-scramble the mark briefly */
+    chars.forEach(c=>scramble(c,c.textContent,250));
+  });
+
+  /* ---------- random interference bursts ---------- */
+  function burst(op=.35){
+    gsap.fromTo('#static',{opacity:op},{opacity:0,duration:.4,ease:'power1.out'});
+  }
+  (function loop(){
+    setTimeout(()=>{burst();
+      gsap.fromTo('#frame',{x:gsap.utils.random(-4,4)},{x:0,duration:.3});
+      loop();
+    },gsap.utils.random(3000,7000));
+  })();
+
+  /* ---------- timecode flicker ---------- */
+  setInterval(()=>{if(Math.random()<.3)gsap.fromTo(tc,{opacity:.2},{opacity:1,duration:.2})},2000);
+}else{
+  /* reduced motion / no gsap: show everything */
+  document.getElementById('boot')?.remove();
+  chars.concat(words).forEach(el=>{el.style.opacity=1;el.style.transform='none'});
 }
-requestAnimationFrame(tick);
-window.addEventListener('load',()=>setTimeout(()=>document.getElementById('boot').classList.add('done'),700));
 </script>
 </body>
 </html>
