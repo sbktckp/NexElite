@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NexElite Media — Signal Incoming</title>
+<meta name="description" content="NexElite Media. A creative media agency. Broadcast begins soon." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ink:#050607;
+  --phosphor:#EAE6DC;
+  --dim:#7d7a72;
+  --cyan:#59E3D8;
+  --magenta:#FF4D8F;
+  --amber:#FFC24B;
+  --line:rgba(234,230,220,.14);
+  --mono:'Space Mono',monospace;
+  --disp:'Bricolage Grotesque',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:var(--ink);
+  color:var(--phosphor);
+  font-family:var(--mono);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:9;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);
+  mix-blend-mode:multiply;
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:10;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.55) 100%);
+}
+.grain{position:fixed;inset:-50%;z-index:8;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 7s steps(10) infinite;}
+@keyframes grain{0%,100%{transform:translate(0,0)}20%{transform:translate(-4%,3%)}40%{transform:translate(3%,-5%)}60%{transform:translate(-3%,4%)}80%{transform:translate(4%,2%)}}
+.frame{position:fixed;inset:0;display:flex;flex-direction:column;padding:clamp(14px,2.5vw,32px)}
+.hud{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.hud .rec{display:flex;align-items:center;gap:8px;color:var(--phosphor)}
+.rec i{width:9px;height:9px;border-radius:50%;background:var(--magenta);display:inline-block;animation:blink 1.2s steps(1) infinite}
+@keyframes blink{50%{opacity:.15}}
+.hud .tc{color:var(--cyan)}
+.stage{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:clamp(20px,4vh,44px);position:relative}
+.eyebrow{font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:var(--dim)}
+.eyebrow b{color:var(--amber);font-weight:400}
+.wordmark{
+  font-family:var(--disp);
+  font-weight:750;
+  font-size:clamp(52px,12vw,170px);
+  line-height:.92;
+  letter-spacing:-.03em;
+  position:relative;
+  color:var(--phosphor);
+}
+.wordmark .thin{font-weight:300;font-style:italic}
+.wordmark::before,.wordmark::after{
+  content:attr(data-t);position:absolute;inset:0;pointer-events:none;
+}
+.wordmark::before{color:var(--cyan);transform:translate(-3px,0);opacity:.55;mix-blend-mode:screen;animation:gl1 3.4s infinite}
+.wordmark::after{color:var(--magenta);transform:translate(3px,0);opacity:.55;mix-blend-mode:screen;animation:gl2 3.4s infinite}
+@keyframes gl1{0%,92%,100%{clip-path:inset(0 0 100% 0)}93%{clip-path:inset(10% 0 55% 0)}95%{clip-path:inset(60% 0 5% 0)}97%{clip-path:inset(30% 0 40% 0)}}
+@keyframes gl2{0%,92%,100%{clip-path:inset(100% 0 0 0)}94%{clip-path:inset(50% 0 20% 0)}96%{clip-path:inset(5% 0 80% 0)}98%{clip-path:inset(70% 0 10% 0)}}
+.tag{max-width:52ch;font-size:clamp(13px,1.6vw,16px);line-height:1.8;color:var(--dim)}
+.tag em{color:var(--phosphor);font-style:normal}
+.bars{display:flex;width:min(560px,80vw);height:14px;border:1px solid var(--line)}
+.bars span{flex:1;transform-origin:bottom;animation:pulse 2.6s ease-in-out infinite}
+.bars span:nth-child(1){background:#c8c4ba}.bars span:nth-child(2){background:var(--amber)}
+.bars span:nth-child(3){background:var(--cyan)}.bars span:nth-child(4){background:#3fae62}
+.bars span:nth-child(5){background:var(--magenta)}.bars span:nth-child(6){background:#d64541}
+.bars span:nth-child(7){background:#4a5bd4}
+.bars span:nth-child(odd){animation-delay:.4s}
+@keyframes pulse{0%,100%{opacity:.85}50%{opacity:.45}}
+.foot{display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.foot a{color:var(--phosphor);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:2px;transition:border-color .3s,color .3s}
+.foot a:hover,.foot a:focus-visible{color:var(--cyan);border-color:var(--cyan);outline:none}
+.status{display:flex;gap:6px;align-items:center}
+.status i{width:7px;height:7px;background:var(--cyan);display:inline-block;animation:blink 2s steps(1) infinite}
+.boot{position:fixed;inset:0;background:var(--ink);z-index:20;display:flex;align-items:center;justify-content:center;font-size:12px;letter-spacing:.3em;color:var(--dim);text-transform:uppercase;transition:opacity .6s,visibility .6s}
+.boot.done{opacity:0;visibility:hidden}
+@media (max-width:600px){
+  .hud span.hide-m,.foot span.hide-m{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<div class="boot" id="boot" aria-hidden="true">CALIBRATING SIGNAL…</div>
+
+<main class="frame">
+  <header class="hud">
+    <span class="rec"><i></i>REC</span>
+    <span class="hide-m">CH·01 — NEXELITE MEDIA</span>
+    <span class="tc" id="tc">00:00:00:00</span>
+  </header>
+
+  <section class="stage">
+    <p class="eyebrow">TEST TRANSMISSION — <b>BROADCAST BEGINS SOON</b></p>
+    <h1 class="wordmark" data-t="NEXELITE">NEX<span class="thin">ELITE</span></h1>
+    <p class="tag">A creative media agency tuning its own frequency.
+      <em>Influence. Create. Elevate.</em> The full picture arrives shortly —
+      until then, enjoy the color bars.</p>
+    <div class="bars" role="img" aria-label="Broadcast test color bars">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span class="status"><i></i>STANDBY</span>
+    <a href="mailto:hello@nexelite.in">hello@nexelite.in</a>
+    <span class="hide-m">© 2026 NEXELITE MEDIA</span>
+  </footer>
+</main>
+
+<script>
+const tc=document.getElementById('tc');const t0=performance.now();
+function tick(now){
+  const s=(now-t0)/1000;
+  const f=Math.floor((s%1)*25),ss=Math.floor(s)%60,mm=Math.floor(s/60)%60,hh=Math.floor(s/3600);
+  const p=n=>String(n).padStart(2,'0');
+  tc.textContent=`${p(hh)}:${p(mm)}:${p(ss)}:${p(f)}`;
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+window.addEventListener('load',()=>setTimeout(()=>document.getElementById('boot').classList.add('done'),700));
+</script>
+</body>
+</html>
