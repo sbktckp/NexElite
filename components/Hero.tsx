@@ -143,7 +143,7 @@ export function Hero() {
       <header className="fixed top-0 inset-x-0 px-3 sm:px-6 py-3 sm:py-4" style={{ zIndex: 10 }}>
         <div
           className="max-w-6xl mx-auto flex items-center justify-between rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5"
-          style={{ background: "rgba(8,8,8,0.55)", backdropFilter: "blur(14px)", border: "1px solid var(--line)" }}
+          style={{ background: "rgba(255,255,255,0.7)", backdropFilter: "blur(14px)", border: "1px solid var(--line)" }}
         >
           <span className="text-xs tracking-[0.2em] uppercase flex items-center gap-2">
             <span className="w-2 h-2 rounded-full blink-dot" style={{ background: "var(--magenta)" }} />
@@ -164,7 +164,7 @@ export function Hero() {
 
       <div ref={frameRef} className="flex-1 flex flex-col justify-center items-center text-center gap-8 sm:gap-11 px-5 sm:px-6 pt-24">
         <p id="hero-eyebrow" className="text-[11px] tracking-[0.4em] uppercase" style={{ color: "var(--dim)" }}>
-          TEST TRANSMISSION — <b className="font-normal" style={{ color: "var(--amber)" }}>BROADCAST LIVE</b>
+          TEST TRANSMISSION — <b className="font-normal" style={{ color: "var(--cyan)" }}>BROADCAST LIVE</b>
         </p>
 
         <h1
@@ -181,8 +181,8 @@ export function Hero() {
         </p>
 
         <div ref={barsRef} className="flex w-[min(560px,80vw)] h-6 border" style={{ borderColor: "var(--line)" }}>
-          {["#c8c4ba", "#ffc24b", "#59e3d8", "#3fae62", "#ff4d8f", "#d64541", "#4a5bd4"].map((c, i) => (
-            <span key={i} className="flex-1 origin-bottom" style={{ background: c }} />
+          {["#2F5D7C", "#7EC8E3", "#B6C7D6", "#EAF6FF", "#7EC8E3", "#2F5D7C", "#B6C7D6"].map((c, i) => (
+            <span key={i} className="flex-1 origin-bottom border-r last:border-r-0" style={{ background: c, borderColor: "var(--line)" }} />
           ))}
         </div>
 
