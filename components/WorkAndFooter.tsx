@@ -58,7 +58,7 @@ export function Footer() {
   return (
     <footer
       className="relative px-5 sm:px-6 py-8 sm:py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] tracking-[0.12em] uppercase"
-      style={{ zIndex: 2, color: "var(--dim)", borderTop: "1px solid var(--line)", background: "rgba(0,0,0,0.6)" }}
+      style={{ zIndex: 2, color: "var(--dim)", borderTop: "1px solid var(--line)", background: "var(--tint)" }}
     >
       <span className="flex items-center gap-2">
         <span className="w-1.5 h-1.5" style={{ background: "var(--cyan)" }} />
