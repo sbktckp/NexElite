@@ -40,36 +40,36 @@ const FRAG = /* glsl */ `
     vec2 p = uv * 2.0 - 1.0;
     p.x *= uRes.x / uRes.y;
 
-    vec3 cyan = vec3(0.349, 0.890, 0.847);
-    vec3 magenta = vec3(1.0, 0.302, 0.561);
-    vec3 amber = vec3(1.0, 0.761, 0.294);
-    vec3 ink = vec3(0.02, 0.024, 0.027);
+    vec3 skyBlue = vec3(0.494, 0.784, 0.890);
+    vec3 slate = vec3(0.184, 0.365, 0.486);
+    vec3 mist = vec3(0.714, 0.780, 0.839);
+    vec3 base = vec3(1.0, 1.0, 1.0);
 
     float mouseDist = length(p - uMouse);
     float mouseGlow = uMouseOn * smoothstep(0.9, 0.0, mouseDist);
 
     float n1 = noise(p * 3.0 + uTime * 0.05);
     float n2 = noise(p * 8.0 - uTime * 0.08);
-    float grain = hash(uv * uRes.xy + uTime * 60.0) * 0.05;
+    float grain = hash(uv * uRes.xy + uTime * 60.0) * 0.02;
 
     float bandY = uv.y * 40.0 + uTime * 2.0;
-    float band = smoothstep(0.96, 1.0, sin(bandY) * 0.5 + 0.5) * 0.06;
+    float band = smoothstep(0.96, 1.0, sin(bandY) * 0.5 + 0.5) * 0.025;
 
     float vign = smoothstep(1.35, 0.2, length(p));
 
-    vec3 col = ink;
-    col += cyan * n1 * 0.045 * vign;
-    col += magenta * n2 * 0.03 * vign;
-    col += amber * mouseGlow * 0.12;
-    col += cyan * mouseGlow * 0.08;
-    col += grain * vign;
-    col += band * vign;
+    vec3 col = base;
+    col -= skyBlue * n1 * 0.05 * vign;
+    col -= mist * n2 * 0.035 * vign;
+    col -= slate * mouseGlow * 0.06;
+    col -= skyBlue * mouseGlow * 0.05;
+    col -= grain * vign;
+    col -= band * vign;
 
     float sweepY = fract(uTime * 0.06);
-    float sweep = smoothstep(0.0, 0.05, 0.05 - abs(uv.y - sweepY)) * 0.05;
-    col += cyan * sweep;
+    float sweep = smoothstep(0.0, 0.05, 0.05 - abs(uv.y - sweepY)) * 0.03;
+    col -= skyBlue * sweep;
 
-    col += uGlitch * (vec3(n2, 1.0 - n2, n1) - 0.5) * 0.4;
+    col += uGlitch * (vec3(n2, 1.0 - n2, n1) - 0.5) * 0.15;
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -172,7 +172,7 @@ export function SignalField() {
     <div
       ref={mountRef}
       className="fixed inset-0"
-      style={{ zIndex: 0, background: "#050607" }}
+      style={{ zIndex: 0, background: "#ffffff" }}
     />
   );
 }
