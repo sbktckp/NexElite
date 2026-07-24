@@ -3,12 +3,12 @@
 import { Video, Megaphone, Camera, Share2, Sparkles, Radio } from "lucide-react";
 
 const SERVICES = [
-  { icon: Video, title: "Short-form & reels", note: "Cut for the scroll, built for retention", bar: "#59e3d8" },
-  { icon: Megaphone, title: "Brand campaigns", note: "Concept through delivery, one team", bar: "#ff4d8f" },
-  { icon: Camera, title: "Photography", note: "Product, lifestyle, and event coverage", bar: "#ffc24b" },
-  { icon: Share2, title: "Social strategy", note: "Calendars, community, and growth loops", bar: "#3fae62" },
-  { icon: Sparkles, title: "Motion design", note: "Titles, transitions, brand animation", bar: "#d64541" },
-  { icon: Radio, title: "Full production", note: "On-site crew, edit, and post — end to end", bar: "#4a5bd4" },
+  { icon: Video, title: "Short-form & reels", note: "Cut for the scroll, built for retention", bar: "#7EC8E3" },
+  { icon: Megaphone, title: "Brand campaigns", note: "Concept through delivery, one team", bar: "#2F5D7C" },
+  { icon: Camera, title: "Photography", note: "Product, lifestyle, and event coverage", bar: "#7EC8E3" },
+  { icon: Share2, title: "Social strategy", note: "Calendars, community, and growth loops", bar: "#2F5D7C" },
+  { icon: Sparkles, title: "Motion design", note: "Titles, transitions, brand animation", bar: "#7EC8E3" },
+  { icon: Radio, title: "Full production", note: "On-site crew, edit, and post — end to end", bar: "#2F5D7C" },
 ];
 
 export function Services() {
@@ -32,7 +32,7 @@ export function Services() {
               <div
                 key={s.title}
                 className="relative p-5 sm:p-6 overflow-hidden transition-transform duration-200 hover:-translate-y-1"
-                style={{ background: "rgba(8,8,8,0.5)", border: "1px solid var(--line)" }}
+                style={{ background: "var(--tint)", border: "1px solid var(--line)" }}
               >
                 <span className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: s.bar }} />
                 <Icon className="w-5 h-5 mb-4" style={{ color: s.bar }} />
