@@ -10,14 +10,14 @@ export interface TapeItem {
 }
 
 const DEFAULT_ITEMS: TapeItem[] = [
-  { label: "Project Alpha", category: "Brand campaign", color: "#59e3d8" },
-  { label: "Project Bravo", category: "Short-form reel", color: "#ff4d8f" },
-  { label: "Project Charlie", category: "Photography", color: "#ffc24b" },
-  { label: "Project Delta", category: "Social strategy", color: "#59e3d8" },
-  { label: "Project Echo", category: "Product launch", color: "#ff4d8f" },
-  { label: "Project Foxtrot", category: "Motion design", color: "#ffc24b" },
-  { label: "Project Golf", category: "Documentary", color: "#59e3d8" },
-  { label: "Project Hotel", category: "Event coverage", color: "#ff4d8f" },
+  { label: "Project Alpha", category: "Brand campaign", color: "#2F5D7C" },
+  { label: "Project Bravo", category: "Short-form reel", color: "#7EC8E3" },
+  { label: "Project Charlie", category: "Photography", color: "#2F5D7C" },
+  { label: "Project Delta", category: "Social strategy", color: "#7EC8E3" },
+  { label: "Project Echo", category: "Product launch", color: "#2F5D7C" },
+  { label: "Project Foxtrot", category: "Motion design", color: "#7EC8E3" },
+  { label: "Project Golf", category: "Documentary", color: "#2F5D7C" },
+  { label: "Project Hotel", category: "Event coverage", color: "#7EC8E3" },
 ];
 
 function makeCardTexture(item: TapeItem, index: number): THREE.CanvasTexture {
@@ -28,10 +28,10 @@ function makeCardTexture(item: TapeItem, index: number): THREE.CanvasTexture {
   cv.height = H;
   const ctx = cv.getContext("2d")!;
 
-  ctx.fillStyle = "#0c0d0e";
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, H);
 
-  ctx.strokeStyle = "rgba(234,230,220,0.14)";
+  ctx.strokeStyle = "rgba(47,93,124,0.16)";
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, W - 2, H - 2);
 
@@ -39,11 +39,11 @@ function makeCardTexture(item: TapeItem, index: number): THREE.CanvasTexture {
   ctx.fillRect(0, 0, W, 10);
 
   ctx.font = "700 22px 'Space Mono', monospace";
-  ctx.fillStyle = "rgba(234,230,220,0.35)";
+  ctx.fillStyle = "rgba(47,93,124,0.45)";
   ctx.fillText(`REEL·${String(index + 1).padStart(2, "0")}`, 28, 56);
 
   ctx.font = "800 42px 'Bricolage Grotesque', sans-serif";
-  ctx.fillStyle = "#eae6dc";
+  ctx.fillStyle = "#2F5D7C";
   wrapText(ctx, item.label, 28, 190, W - 56, 46);
 
   ctx.font = "400 20px 'Space Mono', monospace";
@@ -52,7 +52,7 @@ function makeCardTexture(item: TapeItem, index: number): THREE.CanvasTexture {
 
   const barsY = H - 14;
   const barW = (W - 56) / 7;
-  const cols = ["#c8c4ba", "#ffc24b", "#59e3d8", "#3fae62", "#ff4d8f", "#d64541", "#4a5bd4"];
+  const cols = ["#2F5D7C", "#7EC8E3", "#B6C7D6", "#EAF6FF", "#7EC8E3", "#2F5D7C", "#B6C7D6"];
   cols.forEach((c, i) => {
     ctx.fillStyle = c;
     ctx.fillRect(28 + i * barW, barsY, barW - 3, 6);
