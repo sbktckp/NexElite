@@ -25,6 +25,7 @@ import {
 import { PhoneProof } from "@/components/PhoneProof";
 import { StatsProof } from "@/components/StatsProof";
 import { StickyCTA } from "@/components/StickyCTA";
+import { FrequencyBar } from "@/components/FrequencyBar";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -594,6 +595,7 @@ export default function Home() {
       {!reduced && <ParticleField progressRef={progressRef} />}
       {!reduced && <DriftTriangles />}
       {!reduced && <StageRail progressRef={progressRef} />}
+      <FrequencyBar progressRef={progressRef} />
       <StickyCTA />
       {reduced && (
         <div
