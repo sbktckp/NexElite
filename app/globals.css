@@ -100,3 +100,15 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+@keyframes drift {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(18px, -14px) rotate(90deg); }
+  50% { transform: translate(-6px, 20px) rotate(180deg); }
+  75% { transform: translate(-20px, -10px) rotate(270deg); }
+  100% { transform: translate(0, 0) rotate(360deg); }
+}
+
+.animate-drift {
+  animation: drift linear infinite;
+}
