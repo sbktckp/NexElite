@@ -22,6 +22,9 @@ import {
   Sparkles,
   Radio,
 } from "lucide-react";
+import { PhoneProof } from "@/components/PhoneProof";
+import { StatsProof } from "@/components/StatsProof";
+import { StickyCTA } from "@/components/StickyCTA";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -591,6 +594,7 @@ export default function Home() {
       {!reduced && <ParticleField progressRef={progressRef} />}
       {!reduced && <DriftTriangles />}
       {!reduced && <StageRail progressRef={progressRef} />}
+      <StickyCTA />
       {reduced && (
         <div
           className="fixed inset-0 pointer-events-none"
@@ -655,11 +659,8 @@ export default function Home() {
                 noise.
               </span>
             </h1>
-            <p className="text-base sm:text-lg mb-3 leading-relaxed" style={{ color: "#6f8ca3", maxWidth: "420px" }}>
-              A hundred half-made reels. A feed nobody planned. A brand that sounds different every week.
-            </p>
-            <p className="text-base sm:text-lg mb-8 sm:mb-10 font-medium" style={{ color: "#2F5D7C", maxWidth: "420px" }}>
-              That&apos;s what NexElite tunes into signal.
+            <p className="text-base sm:text-lg mb-8 sm:mb-10 leading-relaxed" style={{ color: "#6f8ca3", maxWidth: "420px" }}>
+              NexElite tunes it into signal — reels, campaigns, and brand content that actually get watched.
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <a
@@ -713,21 +714,46 @@ export default function Home() {
         </div>
       </Stage>
 
-      <Stage align="left" kicker="In focus" title={<>Shot with intent.<br />Edited with taste.</>}>
-        <p className="text-base leading-relaxed mb-6" style={{ color: "#6f8ca3" }}>
-          Not a stock template dressed up as a brand. Every frame is composed for what your audience actually stops scrolling for.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {["Location scouted", "Lit properly", "Graded to brand"].map((chip) => (
-            <span
-              key={chip}
-              className="px-3 py-1.5 rounded-full text-xs font-semibold"
-              style={{ background: "rgba(126,200,227,0.14)", border: "1px solid rgba(126,200,227,0.4)", color: "#2F5D7C" }}
+      <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
+        <div className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6 items-center">
+          <div className="max-w-md order-2 lg:order-1">
+            <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#2F5D7C" }}>
+              In focus
+            </p>
+            <h2
+              className="font-disp font-extrabold mb-5"
+              style={{ fontSize: "clamp(28px, 8vw, 52px)", letterSpacing: "-0.025em", lineHeight: 1.08, color: "#2F5D7C" }}
             >
-              {chip}
-            </span>
-          ))}
+              Shot with intent.
+              <br />
+              Edited with taste.
+            </h2>
+            <p className="text-base leading-relaxed mb-6" style={{ color: "#6f8ca3" }}>
+              Not a stock template dressed up as a brand. Every frame is composed for what your audience actually stops scrolling for.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {["Location scouted", "Lit properly", "Graded to brand"].map((chip) => (
+                <span
+                  key={chip}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ background: "rgba(126,200,227,0.14)", border: "1px solid rgba(126,200,227,0.4)", color: "#2F5D7C" }}
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="order-1 lg:order-2">
+            <PhoneProof />
+          </div>
         </div>
+      </section>
+
+      <Stage align="left" kicker="On the record" title={<>Numbers,<br />not adjectives.</>}>
+        <p className="text-base leading-relaxed mb-2" style={{ color: "#6f8ca3" }}>
+          We&apos;d rather show you than tell you.
+        </p>
+        <StatsProof />
       </Stage>
 
       <Stage align="right" kicker="Found the rhythm" title={<>Paced for attention.<br />Built to retain.</>}>
