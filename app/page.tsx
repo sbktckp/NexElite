@@ -534,14 +534,14 @@ export default function Home() {
     ScrollTrigger.config({ ignoreMobileResize: true });
 
     const st = ScrollTrigger.create({
-      trigger: mainRef.current,
-      start: "top top",
-      end: "bottom bottom",
+      start: 0,
+      end: () => document.documentElement.scrollHeight - window.innerHeight,
       scrub: true,
       onUpdate: (self) => {
         progressRef.current = self.progress * 4;
       },
     });
+    ScrollTrigger.refresh();
 
     const copies = gsap.utils.toArray<HTMLElement>(".stage-copy");
     const copyTriggers = copies.map((el) =>
@@ -600,18 +600,19 @@ export default function Home() {
         <div
           className="max-w-6xl mx-auto flex items-center justify-between rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5"
           style={{
-            background: "rgba(255,255,255,0.7)",
-            backdropFilter: "blur(14px)",
-            border: "1px solid rgba(47,93,124,0.14)",
+            background: "rgba(9,18,28,0.65)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid rgba(126,200,227,0.3)",
+            boxShadow: "0 8px 32px -12px rgba(47,93,124,0.35)",
           }}
         >
-          <span className="text-sm font-bold tracking-tight" style={{ color: "#2F5D7C" }}>
-            NexElite
+          <span className="text-sm font-bold tracking-tight font-mono" style={{ color: "#EAF6FF" }}>
+            NEX<span style={{ color: "#7EC8E3" }}>ELITE</span>
           </span>
           <a
             href="mailto:nexelitemedia@gmail.com"
             className="text-xs sm:text-sm font-bold px-3.5 sm:px-4 py-2 sm:py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-px"
-            style={{ background: "#2F5D7C", color: "#ffffff" }}
+            style={{ background: "#7EC8E3", color: "#09121c", boxShadow: "0 0 20px -4px #7EC8E3" }}
           >
             Get in touch
           </a>
