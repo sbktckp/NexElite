@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { SERVICES } from "@/lib/services";
+
+const OrbitalTrack = dynamic(
+  () => import("./OrbitalTrack").then((m) => m.OrbitalTrack),
+  { ssr: false }
+);
 
 export function ChannelStrip() {
   const [progress, setProgress] = useState(0);
@@ -33,6 +39,8 @@ export function ChannelStrip() {
       className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[min(94vw,720px)]"
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
+      onFocus={() => setExpanded(true)}
+      onBlur={() => setExpanded(false)}
     >
       <div
         className="rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 transition-all duration-300"
@@ -45,7 +53,7 @@ export function ChannelStrip() {
             : "0 0 0 1px rgba(126,200,227,0.15), 0 12px 32px -12px rgba(47,93,124,0.4)",
         }}
       >
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1">
           <span
             className="text-[9px] sm:text-[10px] font-bold tracking-[0.2em] uppercase"
             style={{ color: "#7EC8E3" }}
@@ -60,7 +68,16 @@ export function ChannelStrip() {
           </span>
         </div>
 
-        <div className="flex gap-1 sm:gap-1.5 h-2.5 sm:h-3">
+        <div
+          className="w-full overflow-hidden transition-all duration-300"
+          style={{ height: expanded ? "44px" : "0px" }}
+        >
+          <div className="h-[44px]">
+            <OrbitalTrack progress={progress} />
+          </div>
+        </div>
+
+        <div className="flex gap-1 sm:gap-1.5 h-2.5 sm:h-3 mt-1.5" role="group" aria-label="Jump to service">
           {SERVICES.map((s, i) => {
             const segFillFrac = Math.max(0, Math.min(1, progress * N - i));
             const isActive = i === activeSeg;
@@ -68,10 +85,12 @@ export function ChannelStrip() {
               <button
                 key={s.id}
                 onClick={() => jumpTo(i)}
-                className="group relative flex-1 rounded-full overflow-hidden transition-transform duration-200 hover:scale-y-125"
+                className="group relative flex-1 rounded-full overflow-hidden transition-transform duration-200 hover:scale-y-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-[#09121c]"
                 style={{
                   background: "rgba(126,200,227,0.15)",
                   boxShadow: isActive ? `0 0 10px ${s.tone}` : "none",
+                  // @ts-expect-error -- CSS custom property for focus ring color
+                  "--tw-ring-color": s.tone,
                 }}
                 aria-label={`Jump to ${s.name}`}
               >
