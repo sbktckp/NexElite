@@ -2,18 +2,13 @@
 
 /* ──────────────────────────────────────────────────────────────────────────
    NexElite Media — landing page
-
-   Signature visual: SignalCorridor — a Three.js scroll journey where the
-   CAMERA flies along a spline through eight persistent ring-gates (one per
-   service channel). Nothing morphs; you travel through a fixed world.
-
+   Signature visual: SignalRings — concentric SVG rings + rotating sweep.
    Progress: OrbitalTrack (3D sphere on a tube) inside the ChannelStrip dock.
    Journey animations: per-stage GSAP choreography (split, grid, cards, center).
    Sky blue + slate ink on white.
    ────────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -24,12 +19,8 @@ import { StickyCTA } from "@/components/StickyCTA";
 import { ChannelGrid } from "@/components/ChannelGrid";
 import { ChannelStrip } from "@/components/ChannelStrip";
 import { ServicePanel } from "@/components/ServicePanel";
-import { type Service } from "@/lib/services";
-
-const SignalCorridor = dynamic(
-  () => import("@/components/SignalCorridor").then((m) => m.SignalCorridor),
-  { ssr: false }
-);
+import { SignalRings } from "@/components/SignalRings";
+import { SERVICES, type Service } from "@/lib/services";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -95,6 +86,7 @@ export default function Home() {
   const mainRef = useRef<HTMLDivElement>(null);
   const [reduced, setReduced] = useState<boolean | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [ringIndex, setRingIndex] = useState(-1);
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -111,6 +103,17 @@ export default function Home() {
     lenis.on("scroll", ScrollTrigger.update);
 
     ScrollTrigger.config({ ignoreMobileResize: true });
+
+    const st = ScrollTrigger.create({
+      start: 0,
+      end: () => document.documentElement.scrollHeight - window.innerHeight,
+      scrub: true,
+      onUpdate: (self) => {
+        setRingIndex(
+          Math.min(SERVICES.length - 1, Math.floor(self.progress * SERVICES.length))
+        );
+      },
+    });
     ScrollTrigger.refresh();
 
     const copies = gsap.utils.toArray<HTMLElement>(".stage-copy");
@@ -181,6 +184,7 @@ export default function Home() {
     return () => {
       cancelAnimationFrame(id);
       lenis.destroy();
+      st.kill();
       copyTriggers.forEach((t) => {
         t.scrollTrigger?.kill();
         t.kill();
@@ -196,21 +200,16 @@ export default function Home() {
     <div
       ref={mainRef}
       className="relative"
-      style={{ color: "#2F5D7C", paddingBottom: "96px" }}
+      style={{ background: "#ffffff", color: "#2F5D7C", paddingBottom: "96px" }}
     >
-      {reduced ? (
-        <div
-          className="fixed inset-0 pointer-events-none"
-          style={{
-            zIndex: 0,
-            background:
-              "radial-gradient(ellipse 75% 60% at 50% 40%, rgba(126,200,227,0.16) 0%, transparent 68%), #ffffff",
-          }}
-        />
-      ) : (
-        <SignalCorridor />
-      )}
-
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          zIndex: 0,
+          background:
+            "radial-gradient(ellipse 75% 60% at 50% 40%, rgba(126,200,227,0.16) 0%, transparent 68%), #ffffff",
+        }}
+      />
       <ChannelStrip />
       <StickyCTA />
       <ServicePanel service={selectedService} onClose={() => setSelectedService(null)} />
@@ -239,8 +238,8 @@ export default function Home() {
       </header>
 
       <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 pt-28 sm:pt-32" style={{ zIndex: 2 }}>
-        <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full">
-          <div className="max-w-2xl motion-left">
+        <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div className="max-w-xl motion-left">
             <div
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium mb-7 sm:mb-9"
               style={{
@@ -294,6 +293,9 @@ export default function Home() {
                 Start a project
               </a>
             </div>
+          </div>
+          <div className="hidden lg:flex items-center justify-center motion-right">
+            <SignalRings activeIndex={reduced ? -1 : ringIndex} />
           </div>
         </div>
         <div
