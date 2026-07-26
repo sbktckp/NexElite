@@ -13,6 +13,9 @@ import { SERVICES } from "@/lib/services";
  *
  * Deliberately NOT a particle-morph: nothing changes shape. The world is
  * fixed; you travel through it. Scroll = distance down the corridor.
+ *
+ * Perf: the spline is precomputed into a flat sample array at init, so the
+ * render loop is pure array math — no curve reparameterization per frame.
  */
 export function SignalCorridor() {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -36,7 +39,7 @@ export function SignalCorridor() {
     }
 
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
-    const DPR = Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2);
+    const DPR = Math.min(window.devicePixelRatio, isMobile ? 1.25 : 1.75);
     renderer.setPixelRatio(DPR);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 0);
@@ -52,7 +55,7 @@ export function SignalCorridor() {
       200
     );
 
-    /* ---------- the corridor path ---------- */
+    /* ---------- corridor path ---------- */
     const N = SERVICES.length;
     const SPAN = 22;
     const pathPts: THREE.Vector3[] = [];
@@ -68,6 +71,22 @@ export function SignalCorridor() {
     }
     const path = new THREE.CatmullRomCurve3(pathPts);
 
+    // Precompute the spline once. Render loop then does array lerp only.
+    const SAMPLES = 600;
+    const samples: THREE.Vector3[] = [];
+    for (let i = 0; i <= SAMPLES; i++) {
+      samples.push(path.getPointAt(i / SAMPLES));
+    }
+    const _tmp = new THREE.Vector3();
+    function sampleAt(t: number, out: THREE.Vector3) {
+      const x = Math.max(0, Math.min(1, t)) * SAMPLES;
+      const i = Math.floor(x);
+      const f = x - i;
+      const a = samples[i];
+      const b = samples[Math.min(SAMPLES, i + 1)];
+      return out.copy(a).lerp(b, f);
+    }
+
     /* ---------- ring gates ---------- */
     const gateGroup = new THREE.Group();
     scene.add(gateGroup);
@@ -77,16 +96,15 @@ export function SignalCorridor() {
       halo: THREE.Mesh;
       ticks: THREE.LineSegments;
       t: number;
-      color: THREE.Color;
     };
     const gates: Gate[] = [];
 
-    const ringGeo = new THREE.TorusGeometry(4.6, 0.08, 10, 96);
-    const haloGeo = new THREE.TorusGeometry(4.6, 0.34, 8, 64);
+    const ringGeo = new THREE.TorusGeometry(4.6, 0.08, 8, 72);
+    const haloGeo = new THREE.TorusGeometry(4.6, 0.34, 6, 48);
 
     SERVICES.forEach((svc, i) => {
       const t = (i + 1.2) / (N + 2);
-      const pos = path.getPointAt(Math.min(0.999, t));
+      const pos = sampleAt(t, new THREE.Vector3());
       const tangent = path.getTangentAt(Math.min(0.999, t));
       const color = new THREE.Color(svc.tone);
 
@@ -137,16 +155,15 @@ export function SignalCorridor() {
       ticks.quaternion.copy(ring.quaternion);
 
       gateGroup.add(ring, halo, ticks);
-      gates.push({ ring, halo, ticks, t, color });
+      gates.push({ ring, halo, ticks, t });
     });
 
     /* ---------- dust field ---------- */
-    const DUST = isMobile ? 420 : 1100;
+    const DUST = isMobile ? 300 : 800;
     const dustPos = new Float32Array(DUST * 3);
     const dustSeed = new Float32Array(DUST);
     for (let i = 0; i < DUST; i++) {
-      const t = Math.random();
-      const p = path.getPointAt(Math.min(0.999, t));
+      const p = sampleAt(Math.random(), _tmp);
       const spread = 9 + Math.random() * 7;
       const a = Math.random() * Math.PI * 2;
       dustPos[i * 3] = p.x + Math.cos(a) * spread;
@@ -233,6 +250,7 @@ export function SignalCorridor() {
     /* ---------- loop ---------- */
     const clock = new THREE.Clock();
     const lookTarget = new THREE.Vector3();
+    const camPos = new THREE.Vector3();
     let raf = 0;
 
     function tick() {
@@ -245,32 +263,27 @@ export function SignalCorridor() {
       ptr.x += (ptr.tx - ptr.x) * 0.05;
       ptr.y += (ptr.ty - ptr.y) * 0.05;
 
-      const camPos = path.getPointAt(s);
+      sampleAt(s, camPos);
       camera.position.set(
         camPos.x + ptr.x * 1.6,
         camPos.y + ptr.y * 1.1,
         camPos.z
       );
-      lookTarget.copy(path.getPointAt(Math.min(0.999, s + 0.035)));
+      sampleAt(s + 0.035, lookTarget);
       camera.lookAt(lookTarget);
       camera.rotation.z = Math.sin(time * 0.12) * 0.03 + ptr.x * 0.04;
 
-      gates.forEach((g) => {
-        const dist = Math.abs(g.t - s);
-        const near = 1 - Math.min(1, dist / 0.085);
-        const rm = g.ring.material as THREE.MeshBasicMaterial;
-        const hm = g.halo.material as THREE.MeshBasicMaterial;
-        const tm = g.ticks.material as THREE.LineBasicMaterial;
-
-        rm.opacity = 0.28 + near * 0.72;
-        hm.opacity = near * near * 0.4;
-        tm.opacity = 0.16 + near * 0.6;
-
+      for (let i = 0; i < gates.length; i++) {
+        const g = gates[i];
+        const near = 1 - Math.min(1, Math.abs(g.t - s) / 0.085);
+        (g.ring.material as THREE.MeshBasicMaterial).opacity = 0.28 + near * 0.72;
+        (g.halo.material as THREE.MeshBasicMaterial).opacity = near * near * 0.4;
+        (g.ticks.material as THREE.LineBasicMaterial).opacity = 0.16 + near * 0.6;
         const sc = 1 + near * 0.07;
         g.ring.scale.setScalar(sc);
         g.halo.scale.setScalar(sc * 1.06);
         g.ticks.rotation.z = time * (0.12 + near * 0.5);
-      });
+      }
 
       renderer.render(scene, camera);
       raf = requestAnimationFrame(tick);
