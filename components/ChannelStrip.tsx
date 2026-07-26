@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { SERVICES } from "@/lib/services";
 
 export function ChannelStrip() {
   const [progress, setProgress] = useState(0);
   const [activeSeg, setActiveSeg] = useState(0);
-  const barsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const [expanded, setExpanded] = useState(false);
   const N = SERVICES.length;
 
   useEffect(() => {
@@ -29,73 +29,64 @@ export function ChannelStrip() {
   }
 
   return (
-    <>
-      {/* Desktop: thick vertical strip, floats in left gutter */}
+    <div
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[min(94vw,720px)]"
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => setExpanded(false)}
+    >
       <div
-        className="fixed left-3 top-1/2 -translate-y-1/2 hidden xl:flex flex-col z-40 gap-1.5"
-        style={{ width: "56px", height: "62vh" }}
+        className="rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 transition-all duration-300"
+        style={{
+          background: "rgba(9,18,28,0.72)",
+          backdropFilter: "blur(18px)",
+          border: "1px solid rgba(126,200,227,0.35)",
+          boxShadow: expanded
+            ? "0 0 0 1px rgba(126,200,227,0.5), 0 20px 60px -12px rgba(47,93,124,0.6), 0 0 40px -8px rgba(126,200,227,0.4)"
+            : "0 0 0 1px rgba(126,200,227,0.15), 0 12px 32px -12px rgba(47,93,124,0.4)",
+        }}
       >
-        {SERVICES.map((s, i) => {
-          const isActive = i === activeSeg;
-          const segFillFrac = Math.max(0, Math.min(1, progress * N - i));
-          return (
-            <button
-              key={s.id}
-              onClick={() => jumpTo(i)}
-              className="group relative flex-1 rounded-lg overflow-hidden transition-all duration-300"
-              style={{
-                background: "rgba(182,199,214,0.25)",
-                outline: isActive ? `2px solid ${s.tone}` : "none",
-                outlineOffset: "2px",
-              }}
-              aria-label={`Jump to ${s.name}`}
-              title={s.name}
-            >
-              <div
-                className="absolute inset-x-0 bottom-0 transition-all duration-200"
-                style={{
-                  height: `${segFillFrac * 100}%`,
-                  background: `linear-gradient(180deg, ${s.tone}, #D9B98A)`,
-                }}
-              />
-              <span
-                className="absolute inset-0 flex items-center justify-center text-[9px] font-bold rotate-180"
-                style={{
-                  writingMode: "vertical-rl",
-                  color: segFillFrac > 0.5 ? "#ffffff" : "#6f8ca3",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                {s.name}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+        <div className="flex items-center justify-between mb-2">
+          <span
+            className="text-[9px] sm:text-[10px] font-bold tracking-[0.2em] uppercase"
+            style={{ color: "#7EC8E3" }}
+          >
+            {SERVICES[activeSeg].name}
+          </span>
+          <span
+            className="text-[9px] sm:text-[10px] font-mono"
+            style={{ color: "rgba(234,246,255,0.5)" }}
+          >
+            {String(activeSeg + 1).padStart(2, "0")} / {String(N).padStart(2, "0")}
+          </span>
+        </div>
 
-      {/* Mobile/tablet: thick horizontal strip pinned to top */}
-      <div
-        className="fixed top-0 inset-x-0 flex xl:hidden z-40 h-3 gap-[3px] px-[3px] pt-[3px]"
-      >
-        {SERVICES.map((s, i) => {
-          const segFillFrac = Math.max(0, Math.min(1, progress * N - i));
-          return (
-            <div
-              key={s.id}
-              className="flex-1 rounded-full overflow-hidden"
-              style={{ background: "rgba(182,199,214,0.35)" }}
-            >
-              <div
-                className="h-full transition-all duration-200"
+        <div className="flex gap-1 sm:gap-1.5 h-2.5 sm:h-3">
+          {SERVICES.map((s, i) => {
+            const segFillFrac = Math.max(0, Math.min(1, progress * N - i));
+            const isActive = i === activeSeg;
+            return (
+              <button
+                key={s.id}
+                onClick={() => jumpTo(i)}
+                className="group relative flex-1 rounded-full overflow-hidden transition-transform duration-200 hover:scale-y-125"
                 style={{
-                  width: `${segFillFrac * 100}%`,
-                  background: `linear-gradient(90deg, ${s.tone}, #D9B98A)`,
+                  background: "rgba(126,200,227,0.15)",
+                  boxShadow: isActive ? `0 0 10px ${s.tone}` : "none",
                 }}
-              />
-            </div>
-          );
-        })}
+                aria-label={`Jump to ${s.name}`}
+              >
+                <div
+                  className="absolute inset-y-0 left-0 transition-all duration-200"
+                  style={{
+                    width: `${segFillFrac * 100}%`,
+                    background: `linear-gradient(90deg, ${s.tone}, #D9B98A)`,
+                  }}
+                />
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </>
+    </div>
   );
 }
