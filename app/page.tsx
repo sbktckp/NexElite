@@ -13,30 +13,16 @@ import * as THREE from "three";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-import {
-  ArrowUpRight,
-  Video,
-  Megaphone,
-  Camera,
-  Share2,
-  Sparkles,
-  Radio,
-} from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { PhoneProof } from "@/components/PhoneProof";
 import { StatsProof } from "@/components/StatsProof";
 import { StickyCTA } from "@/components/StickyCTA";
-import { FrequencyBar } from "@/components/FrequencyBar";
+import { ChannelGrid } from "@/components/ChannelGrid";
+import { ChannelStrip } from "@/components/ChannelStrip";
+import { ServicePanel } from "@/components/ServicePanel";
+import type { Service } from "@/lib/services";
 
 gsap.registerPlugin(ScrollTrigger);
-
-const SERVICES = [
-  { icon: Video, label: "Short-form & reels", note: "Cut for the scroll" },
-  { icon: Megaphone, label: "Brand campaigns", note: "Concept to delivery" },
-  { icon: Camera, label: "Photography", note: "Product & lifestyle" },
-  { icon: Share2, label: "Social strategy", note: "Calendars & growth" },
-  { icon: Sparkles, label: "Motion design", note: "Titles & animation" },
-  { icon: Radio, label: "Full production", note: "Crew, edit, post" },
-];
 
 function jitter(mag: number) {
   return (Math.random() - 0.5) * 2 * mag;
@@ -529,6 +515,7 @@ export default function Home() {
   const progressRef = useRef(0);
   const mainRef = useRef<HTMLDivElement>(null);
   const [reduced, setReduced] = useState<boolean | null>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -595,8 +582,9 @@ export default function Home() {
       {!reduced && <ParticleField progressRef={progressRef} />}
       {!reduced && <DriftTriangles />}
       {!reduced && <StageRail progressRef={progressRef} />}
-      <FrequencyBar progressRef={progressRef} />
+      <ChannelStrip />
       <StickyCTA />
+      <ServicePanel service={selectedService} onClose={() => setSelectedService(null)} />
       {reduced && (
         <div
           className="fixed inset-0 pointer-events-none"
@@ -691,30 +679,27 @@ export default function Home() {
         </div>
       </section>
 
-      <Stage align="right" kicker="Signal acquired" title={<>Six disciplines.<br />One frequency.</>}>
-        <p className="text-base leading-relaxed mb-5" style={{ color: "#6f8ca3" }}>
-          Everything your brand needs to be seen, handled by one crew that already speaks the same language.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mt-2">
-          {SERVICES.map((s) => {
-            const Icon = s.icon;
-            return (
-              <div key={s.label} className="flex items-start gap-2.5 text-left">
-                <span
-                  className="mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: "rgba(126,200,227,0.18)", color: "#2F5D7C" }}
-                >
-                  <Icon className="w-3 h-3" />
-                </span>
-                <div>
-                  <p className="text-xs font-bold leading-tight" style={{ color: "#2F5D7C" }}>{s.label}</p>
-                  <p className="text-[11px] leading-snug" style={{ color: "#8ba3b6" }}>{s.note}</p>
-                </div>
-              </div>
-            );
-          })}
+      <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
+        <div className="stage-copy max-w-6xl mx-auto w-full text-center mb-10 sm:mb-14">
+          <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#2F5D7C" }}>
+            Signal acquired
+          </p>
+          <h2
+            className="font-disp font-extrabold mb-4"
+            style={{ fontSize: "clamp(28px, 8vw, 52px)", letterSpacing: "-0.025em", lineHeight: 1.08, color: "#2F5D7C" }}
+          >
+            Eight channels.
+            <br />
+            One frequency.
+          </h2>
+          <p className="text-base max-w-md mx-auto" style={{ color: "#6f8ca3" }}>
+            Tap a channel to see what it delivers.
+          </p>
         </div>
-      </Stage>
+        <div className="stage-copy w-full">
+          <ChannelGrid onSelect={setSelectedService} />
+        </div>
+      </section>
 
       <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
         <div className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6 items-center">
