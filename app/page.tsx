@@ -2,18 +2,15 @@
 
 /* ──────────────────────────────────────────────────────────────────────────
    NexElite Media — landing page
-
-   Scroll journey: SignalCorridor — a Three.js flythrough where the CAMERA
-   travels a precomputed spline through eight persistent ring-gates (one per
-   service channel). Nothing morphs; you move through a fixed world.
-
-   Hero accent: SignalRings (flat SVG radar).
+   Hero accent: SignalRings (flat SVG radar sweep).
    Progress: OrbitalTrack (3D sphere on a tube) inside the ChannelStrip dock.
    Journey animations: per-stage GSAP choreography (split, grid, cards, center).
+
+   NOTE: SignalCorridor (Three.js camera flythrough) is intentionally NOT
+   mounted here — it freezes the renderer. See components/SignalCorridor.tsx.
    ────────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -26,11 +23,6 @@ import { ChannelStrip } from "@/components/ChannelStrip";
 import { ServicePanel } from "@/components/ServicePanel";
 import { SignalRings } from "@/components/SignalRings";
 import { SERVICES, type Service } from "@/lib/services";
-
-const SignalCorridor = dynamic(
-  () => import("@/components/SignalCorridor").then((m) => m.SignalCorridor),
-  { ssr: false }
-);
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -210,21 +202,16 @@ export default function Home() {
     <div
       ref={mainRef}
       className="relative"
-      style={{ color: "#2F5D7C", paddingBottom: "96px" }}
+      style={{ background: "#ffffff", color: "#2F5D7C", paddingBottom: "96px" }}
     >
-      {reduced ? (
-        <div
-          className="fixed inset-0 pointer-events-none"
-          style={{
-            zIndex: 0,
-            background:
-              "radial-gradient(ellipse 75% 60% at 50% 40%, rgba(126,200,227,0.16) 0%, transparent 68%), #ffffff",
-          }}
-        />
-      ) : (
-        <SignalCorridor />
-      )}
-
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          zIndex: 0,
+          background:
+            "radial-gradient(ellipse 75% 60% at 50% 40%, rgba(126,200,227,0.16) 0%, transparent 68%), #ffffff",
+        }}
+      />
       <ChannelStrip />
       <StickyCTA />
       <ServicePanel service={selectedService} onClose={() => setSelectedService(null)} />
