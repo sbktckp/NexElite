@@ -2,15 +2,18 @@
 
 /* ──────────────────────────────────────────────────────────────────────────
    NexElite Media — landing page
-   Signature visual: SignalRings — concentric SVG rings + rotating sweep,
-   one ring per service. Real vector DOM (not a particle/WebGL system),
-   accessible by default, respects prefers-reduced-motion via CSS.
-   Progress: OrbitalTrack — Three.js sphere traveling a 3D tube path.
-   Journey animations: per-stage choreography (split, grid, cards, center).
+
+   Signature visual: SignalCorridor — a Three.js scroll journey where the
+   CAMERA flies along a spline through eight persistent ring-gates (one per
+   service channel). Nothing morphs; you travel through a fixed world.
+
+   Progress: OrbitalTrack (3D sphere on a tube) inside the ChannelStrip dock.
+   Journey animations: per-stage GSAP choreography (split, grid, cards, center).
    Sky blue + slate ink on white.
    ────────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -21,8 +24,12 @@ import { StickyCTA } from "@/components/StickyCTA";
 import { ChannelGrid } from "@/components/ChannelGrid";
 import { ChannelStrip } from "@/components/ChannelStrip";
 import { ServicePanel } from "@/components/ServicePanel";
-import { SignalRings } from "@/components/SignalRings";
-import { SERVICES, type Service } from "@/lib/services";
+import { type Service } from "@/lib/services";
+
+const SignalCorridor = dynamic(
+  () => import("@/components/SignalCorridor").then((m) => m.SignalCorridor),
+  { ssr: false }
+);
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -60,7 +67,7 @@ function Stage({
         <div className="max-w-md w-full">
           {kicker && (
             <p
-              className="text-xs font-semibold uppercase tracking-widest mb-4"
+              className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4"
               style={{ color: "#2F5D7C" }}
             >
               {kicker}
@@ -88,7 +95,6 @@ export default function Home() {
   const mainRef = useRef<HTMLDivElement>(null);
   const [reduced, setReduced] = useState<boolean | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [ringIndex, setRingIndex] = useState(-1);
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -105,15 +111,6 @@ export default function Home() {
     lenis.on("scroll", ScrollTrigger.update);
 
     ScrollTrigger.config({ ignoreMobileResize: true });
-
-    const st = ScrollTrigger.create({
-      start: 0,
-      end: () => document.documentElement.scrollHeight - window.innerHeight,
-      scrub: true,
-      onUpdate: (self) => {
-        setRingIndex(Math.min(SERVICES.length - 1, Math.floor(self.progress * SERVICES.length)));
-      },
-    });
     ScrollTrigger.refresh();
 
     const copies = gsap.utils.toArray<HTMLElement>(".stage-copy");
@@ -184,7 +181,6 @@ export default function Home() {
     return () => {
       cancelAnimationFrame(id);
       lenis.destroy();
-      st.kill();
       copyTriggers.forEach((t) => {
         t.scrollTrigger?.kill();
         t.kill();
@@ -200,36 +196,41 @@ export default function Home() {
     <div
       ref={mainRef}
       className="relative"
-      style={{ background: "#ffffff", color: "#2F5D7C", paddingBottom: "96px" }}
+      style={{ color: "#2F5D7C", paddingBottom: "96px" }}
     >
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          zIndex: 0,
-          background:
-            "radial-gradient(ellipse 70% 55% at 50% 35%, rgba(126,200,227,0.14) 0%, transparent 65%), #ffffff",
-        }}
-      />
+      {reduced ? (
+        <div
+          className="fixed inset-0 pointer-events-none"
+          style={{
+            zIndex: 0,
+            background:
+              "radial-gradient(ellipse 75% 60% at 50% 40%, rgba(126,200,227,0.16) 0%, transparent 68%), #ffffff",
+          }}
+        />
+      ) : (
+        <SignalCorridor />
+      )}
+
       <ChannelStrip />
       <StickyCTA />
       <ServicePanel service={selectedService} onClose={() => setSelectedService(null)} />
 
       <header className="fixed top-0 inset-x-0 px-3 sm:px-6 py-3 sm:py-4" style={{ zIndex: 10 }}>
         <div
-          className="max-w-6xl mx-auto flex items-center justify-between rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5"
+          className="max-w-6xl mx-auto flex items-center justify-between rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3"
           style={{
-            background: "rgba(9,18,28,0.65)",
+            background: "rgba(9,18,28,0.68)",
             backdropFilter: "blur(16px)",
             border: "1px solid rgba(126,200,227,0.3)",
             boxShadow: "0 8px 32px -12px rgba(47,93,124,0.35)",
           }}
         >
-          <span className="text-sm font-bold tracking-tight font-mono whitespace-nowrap" style={{ color: "#EAF6FF" }}>
+          <span className="font-tech text-sm font-bold tracking-tight whitespace-nowrap" style={{ color: "#EAF6FF" }}>
             NEX<span style={{ color: "#7EC8E3" }}>ELITE</span>
           </span>
           <a
             href="mailto:nexelitemedia@gmail.com"
-            className="text-xs sm:text-sm font-bold px-3.5 sm:px-4 py-2 sm:py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-px whitespace-nowrap"
+            className="text-xs sm:text-sm font-bold px-4 py-2 sm:py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-px whitespace-nowrap"
             style={{ background: "#7EC8E3", color: "#09121c", boxShadow: "0 0 20px -4px #7EC8E3" }}
           >
             Get in touch
@@ -237,30 +238,31 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 pt-24 sm:pt-28" style={{ zIndex: 2 }}>
-        <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div className="max-w-xl motion-left">
+      <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 pt-28 sm:pt-32" style={{ zIndex: 2 }}>
+        <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full">
+          <div className="max-w-2xl motion-left">
             <div
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6 sm:mb-8"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium mb-7 sm:mb-9"
               style={{
-                background: "rgba(126,200,227,0.14)",
-                border: "1px solid rgba(126,200,227,0.4)",
+                background: "rgba(255,255,255,0.7)",
+                backdropFilter: "blur(8px)",
+                border: "1px solid rgba(126,200,227,0.5)",
                 color: "#2F5D7C",
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#7EC8E3" }} />
-              <span className="whitespace-nowrap">Test transmission</span>
+              <span className="font-tech tracking-wider whitespace-nowrap">TEST TRANSMISSION</span>
             </div>
             <h1
-              className="font-disp font-extrabold leading-none mb-5 sm:mb-6"
-              style={{ fontSize: "clamp(36px, 10vw, 80px)", letterSpacing: "-0.03em", color: "#2F5D7C" }}
+              className="font-disp font-extrabold leading-[0.95] mb-6 sm:mb-7"
+              style={{ fontSize: "clamp(40px, 9vw, 86px)", letterSpacing: "-0.035em", color: "#2F5D7C" }}
             >
               Every channel
               <br />
               starts as{" "}
               <span
                 style={{
-                  background: "linear-gradient(100deg, #2F5D7C 10%, #7EC8E3 90%)",
+                  background: "linear-gradient(100deg, #2F5D7C 5%, #7EC8E3 60%, #D9B98A 95%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}
@@ -268,86 +270,91 @@ export default function Home() {
                 noise.
               </span>
             </h1>
-            <p className="text-base sm:text-lg mb-8 sm:mb-10 leading-relaxed" style={{ color: "#4d6577", maxWidth: "420px" }}>
+            <p className="text-lg sm:text-xl mb-9 sm:mb-11 leading-relaxed" style={{ color: "#4d6577", maxWidth: "480px" }}>
               NexElite tunes it into signal — reels, campaigns, and brand content that actually get watched.
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <a
                 href="#work"
-                className="flex items-center justify-center gap-1.5 text-sm font-bold px-6 py-3 sm:py-2.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap"
-                style={{ background: "#2F5D7C", color: "#ffffff" }}
+                className="flex items-center justify-center gap-1.5 text-sm font-bold px-7 py-3.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap"
+                style={{ background: "#2F5D7C", color: "#ffffff", boxShadow: "0 12px 28px -10px rgba(47,93,124,0.7)" }}
               >
                 See the work <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
               </a>
               <a
                 href="mailto:nexelitemedia@gmail.com"
-                className="text-sm text-center px-6 py-3 sm:py-2.5 rounded-xl transition-all duration-150 whitespace-nowrap"
-                style={{ color: "#2F5D7C", border: "1px solid rgba(47,93,124,0.2)" }}
+                className="text-sm font-semibold text-center px-7 py-3.5 rounded-xl transition-all duration-150 whitespace-nowrap"
+                style={{
+                  color: "#2F5D7C",
+                  background: "rgba(255,255,255,0.6)",
+                  backdropFilter: "blur(8px)",
+                  border: "1px solid rgba(47,93,124,0.22)",
+                }}
               >
                 Start a project
               </a>
             </div>
           </div>
-          <div className="hidden lg:flex items-center justify-center motion-right">
-            <SignalRings activeIndex={reduced ? -1 : ringIndex} />
-          </div>
         </div>
         <div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden min-[400px]:flex flex-col items-center gap-2"
-          style={{ color: "rgba(47,93,124,0.4)" }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 hidden min-[400px]:flex flex-col items-center gap-2"
+          style={{ color: "rgba(47,93,124,0.45)" }}
         >
-          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold whitespace-nowrap">Scroll</span>
-          <div className="w-px h-8 animate-pulse" style={{ background: "linear-gradient(180deg, rgba(47,93,124,0.4), transparent)" }} />
+          <span className="font-tech text-[10px] uppercase tracking-[0.25em] font-bold whitespace-nowrap">Scroll</span>
+          <div className="w-px h-9 animate-pulse" style={{ background: "linear-gradient(180deg, rgba(47,93,124,0.45), transparent)" }} />
         </div>
       </section>
 
-      <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
-        <div data-motion="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-10 sm:mb-14">
-          <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#2F5D7C" }}>
+      <section id="work" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
+        <div data-motion="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
+          <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
             Signal acquired
           </p>
           <h2
-            className="font-disp font-extrabold mb-4"
-            style={{ fontSize: "clamp(28px, 8vw, 52px)", letterSpacing: "-0.025em", lineHeight: 1.08, color: "#2F5D7C" }}
+            className="font-disp font-extrabold mb-5"
+            style={{ fontSize: "clamp(30px, 7vw, 58px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
           >
             Eight channels.
             <br />
             One frequency.
           </h2>
-          <p className="text-base max-w-md mx-auto" style={{ color: "#4d6577" }}>
+          <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "#4d6577" }}>
             Tap a channel, or use arrow keys, to see what it delivers.
           </p>
         </div>
         <div data-motion="grid" className="stage-copy w-full">
-          <div className="motion-grid-wrap">
-            <ChannelGrid onSelect={setSelectedService} />
-          </div>
+          <ChannelGrid onSelect={setSelectedService} />
         </div>
       </section>
 
       <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
-        <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6 items-center">
+        <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-10 items-center">
           <div className="max-w-md order-2 lg:order-1 motion-left">
-            <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#2F5D7C" }}>
+            <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
               In focus
             </p>
             <h2
               className="font-disp font-extrabold mb-5"
-              style={{ fontSize: "clamp(28px, 8vw, 52px)", letterSpacing: "-0.025em", lineHeight: 1.08, color: "#2F5D7C" }}
+              style={{ fontSize: "clamp(30px, 7vw, 54px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
             >
               Shot with intent.
               <br />
               Edited with taste.
             </h2>
-            <p className="text-base leading-relaxed mb-6" style={{ color: "#4d6577" }}>
+            <p className="text-base sm:text-lg leading-relaxed mb-7" style={{ color: "#4d6577" }}>
               Not a stock template dressed up as a brand. Every frame is composed for what your audience actually stops scrolling for.
             </p>
             <div className="flex flex-wrap gap-2">
               {["Location scouted", "Lit properly", "Graded to brand"].map((chip) => (
                 <span
                   key={chip}
-                  className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                  style={{ background: "rgba(126,200,227,0.14)", border: "1px solid rgba(126,200,227,0.4)", color: "#2F5D7C" }}
+                  className="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                  style={{
+                    background: "rgba(255,255,255,0.65)",
+                    backdropFilter: "blur(6px)",
+                    border: "1px solid rgba(126,200,227,0.5)",
+                    color: "#2F5D7C",
+                  }}
                 >
                   {chip}
                 </span>
@@ -361,7 +368,7 @@ export default function Home() {
       </section>
 
       <Stage motion="cards" align="left" kicker="On the record" title={<>Numbers,<br />not adjectives.</>}>
-        <p className="text-base leading-relaxed mb-2" style={{ color: "#4d6577" }}>
+        <p className="text-base sm:text-lg leading-relaxed mb-3" style={{ color: "#4d6577" }}>
           We&apos;d rather show you than tell you.
         </p>
         <div className="motion-card">
@@ -370,14 +377,19 @@ export default function Home() {
       </Stage>
 
       <Stage motion="rise" align="right" kicker="Found the rhythm" title={<>Paced for attention.<br />Built to retain.</>}>
-        <p className="text-base leading-relaxed mb-6" style={{ color: "#4d6577" }}>
+        <p className="text-base sm:text-lg leading-relaxed mb-7" style={{ color: "#4d6577" }}>
           Cuts land on the beat. Captions arrive on time. Nothing overstays its welcome.
         </p>
         <div
-          className="inline-flex flex-col gap-1 px-5 py-4 rounded-2xl text-left"
-          style={{ background: "rgba(126,200,227,0.12)", border: "1px solid rgba(126,200,227,0.35)" }}
+          className="inline-flex flex-col gap-1 px-6 py-5 rounded-2xl text-left"
+          style={{
+            background: "rgba(255,255,255,0.7)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(126,200,227,0.45)",
+            boxShadow: "0 16px 40px -20px rgba(47,93,124,0.5)",
+          }}
         >
-          <p className="text-xl font-black" style={{ color: "#2F5D7C" }}>Retention-first editing</p>
+          <p className="font-disp text-xl font-extrabold" style={{ color: "#2F5D7C" }}>Retention-first editing</p>
           <p className="text-sm" style={{ color: "#4d6577" }}>Every cut earns the next three seconds</p>
         </div>
       </Stage>
@@ -388,18 +400,18 @@ export default function Home() {
       >
         <div data-motion="center" className="stage-copy max-w-xl mx-auto">
           <h2
-            className="font-disp font-extrabold mb-4"
-            style={{ fontSize: "clamp(30px, 8vw, 56px)", letterSpacing: "-0.025em", lineHeight: 1.1, color: "#2F5D7C" }}
+            className="font-disp font-extrabold mb-5"
+            style={{ fontSize: "clamp(34px, 8vw, 62px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
           >
             Ready to go on air?
           </h2>
-          <p className="mb-10 text-lg" style={{ color: "#4d6577" }}>
+          <p className="mb-11 text-lg sm:text-xl" style={{ color: "#4d6577" }}>
             Tell us what you&apos;re building. We&apos;ll tell you how it looks in motion.
           </p>
           <a
             href="mailto:nexelitemedia@gmail.com"
-            className="inline-flex items-center gap-2 font-bold px-9 py-3.5 rounded-xl text-sm transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap"
-            style={{ background: "#2F5D7C", color: "#ffffff" }}
+            className="inline-flex items-center gap-2 font-bold px-10 py-4 rounded-xl text-sm sm:text-base transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap"
+            style={{ background: "#2F5D7C", color: "#ffffff", boxShadow: "0 16px 36px -12px rgba(47,93,124,0.75)" }}
           >
             nexelitemedia@gmail.com <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
           </a>
@@ -407,11 +419,18 @@ export default function Home() {
       </section>
 
       <footer
-        className="relative px-6 py-10"
-        style={{ zIndex: 2, background: "rgba(234,246,255,0.7)", borderTop: "1px solid rgba(47,93,124,0.12)", backdropFilter: "blur(8px)" }}
+        className="relative px-6 py-12"
+        style={{
+          zIndex: 2,
+          background: "rgba(234,246,255,0.75)",
+          borderTop: "1px solid rgba(47,93,124,0.12)",
+          backdropFilter: "blur(10px)",
+        }}
       >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between gap-4">
-          <span className="text-sm" style={{ color: "#4d6577" }}>NexElite Media</span>
+          <span className="font-tech text-sm font-bold" style={{ color: "#2F5D7C" }}>
+            NEX<span style={{ color: "#7EC8E3" }}>ELITE</span>
+          </span>
           <p className="text-sm text-center" style={{ color: "#4d6577" }}>© 2026 NexElite Media</p>
         </div>
       </footer>
