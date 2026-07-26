@@ -5,6 +5,8 @@
    Signature visual: SignalRings — concentric SVG rings + rotating sweep,
    one ring per service. Real vector DOM (not a particle/WebGL system),
    accessible by default, respects prefers-reduced-motion via CSS.
+   Progress: OrbitalTrack — Three.js sphere traveling a 3D tube path.
+   Journey animations: per-stage choreography (split, grid, cards, center).
    Sky blue + slate ink on white.
    ────────────────────────────────────────────────────────────────────────── */
 
@@ -30,12 +32,14 @@ function Stage({
   title,
   children,
   innerRef,
+  motion = "rise",
 }: {
   align?: "left" | "right" | "center";
   kicker?: string;
   title: React.ReactNode;
   children?: React.ReactNode;
   innerRef?: React.Ref<HTMLDivElement>;
+  motion?: string;
 }) {
   const alignCls =
     align === "center"
@@ -50,6 +54,7 @@ function Stage({
     >
       <div
         ref={innerRef}
+        data-motion={motion}
         className={`stage-copy max-w-6xl mx-auto w-full flex flex-col ${alignCls}`}
       >
         <div className="max-w-md w-full">
@@ -112,23 +117,69 @@ export default function Home() {
     ScrollTrigger.refresh();
 
     const copies = gsap.utils.toArray<HTMLElement>(".stage-copy");
-    const copyTriggers = copies.map((el) =>
-      gsap.fromTo(
+    const copyTriggers = copies.map((el) => {
+      const motionType = el.dataset.motion || "rise";
+      const commonTrigger = {
+        trigger: el,
+        start: "top 80%",
+        end: "top 42%",
+        scrub: true,
+      };
+
+      if (motionType === "cards") {
+        const cards = el.querySelectorAll<HTMLElement>(".motion-card");
+        return gsap.fromTo(
+          cards,
+          { opacity: 0, y: 34, scale: 0.92 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            stagger: 0.08,
+            ease: "back.out(1.4)",
+            scrollTrigger: commonTrigger,
+          }
+        );
+      }
+
+      if (motionType === "split") {
+        const left = el.querySelector<HTMLElement>(".motion-left");
+        const right = el.querySelector<HTMLElement>(".motion-right");
+        const tl = gsap.timeline({ scrollTrigger: commonTrigger });
+        if (left) tl.fromTo(left, { opacity: 0, x: -46 }, { opacity: 1, x: 0, ease: "power3.out" }, 0);
+        if (right) tl.fromTo(right, { opacity: 0, x: 46, scale: 0.92 }, { opacity: 1, x: 0, scale: 1, ease: "power3.out" }, 0.05);
+        return tl;
+      }
+
+      if (motionType === "grid") {
+        const tiles = el.querySelectorAll<HTMLElement>(".motion-tile");
+        return gsap.fromTo(
+          tiles,
+          { opacity: 0, y: 26 },
+          {
+            opacity: 1,
+            y: 0,
+            stagger: { each: 0.05, from: "start", grid: "auto" },
+            ease: "power2.out",
+            scrollTrigger: commonTrigger,
+          }
+        );
+      }
+
+      if (motionType === "center") {
+        return gsap.fromTo(
+          el,
+          { opacity: 0, y: 30, scale: 0.96 },
+          { opacity: 1, y: 0, scale: 1, ease: "power2.out", scrollTrigger: commonTrigger }
+        );
+      }
+
+      return gsap.fromTo(
         el,
         { opacity: 0, y: 42 },
-        {
-          opacity: 1,
-          y: 0,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: el,
-            start: "top 78%",
-            end: "top 45%",
-            scrub: true,
-          },
-        }
-      )
-    );
+        { opacity: 1, y: 0, ease: "power2.out", scrollTrigger: commonTrigger }
+      );
+    });
 
     return () => {
       cancelAnimationFrame(id);
@@ -183,8 +234,8 @@ export default function Home() {
       </header>
 
       <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6" style={{ zIndex: 2 }}>
-        <div className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div className="max-w-xl">
+        <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div className="max-w-xl motion-left">
             <div
               className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6 sm:mb-8"
               style={{
@@ -233,7 +284,7 @@ export default function Home() {
               </a>
             </div>
           </div>
-          <div className="hidden lg:block">
+          <div className="hidden lg:block motion-right">
             <SignalRings activeIndex={reduced ? -1 : ringIndex} />
           </div>
         </div>
@@ -247,7 +298,7 @@ export default function Home() {
       </section>
 
       <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
-        <div className="stage-copy max-w-6xl mx-auto w-full text-center mb-10 sm:mb-14">
+        <div data-motion="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-10 sm:mb-14">
           <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#2F5D7C" }}>
             Signal acquired
           </p>
@@ -263,14 +314,16 @@ export default function Home() {
             Tap a channel, or use arrow keys, to see what it delivers.
           </p>
         </div>
-        <div className="stage-copy w-full">
-          <ChannelGrid onSelect={setSelectedService} />
+        <div data-motion="grid" className="stage-copy w-full">
+          <div className="motion-grid-wrap">
+            <ChannelGrid onSelect={setSelectedService} />
+          </div>
         </div>
       </section>
 
       <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
-        <div className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6 items-center">
-          <div className="max-w-md order-2 lg:order-1">
+        <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-6 items-center">
+          <div className="max-w-md order-2 lg:order-1 motion-left">
             <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#2F5D7C" }}>
               In focus
             </p>
@@ -297,20 +350,22 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <div className="order-1 lg:order-2">
+          <div className="order-1 lg:order-2 motion-right">
             <PhoneProof />
           </div>
         </div>
       </section>
 
-      <Stage align="left" kicker="On the record" title={<>Numbers,<br />not adjectives.</>}>
+      <Stage motion="cards" align="left" kicker="On the record" title={<>Numbers,<br />not adjectives.</>}>
         <p className="text-base leading-relaxed mb-2" style={{ color: "#4d6577" }}>
           We&apos;d rather show you than tell you.
         </p>
-        <StatsProof />
+        <div className="motion-card">
+          <StatsProof />
+        </div>
       </Stage>
 
-      <Stage align="right" kicker="Found the rhythm" title={<>Paced for attention.<br />Built to retain.</>}>
+      <Stage motion="rise" align="right" kicker="Found the rhythm" title={<>Paced for attention.<br />Built to retain.</>}>
         <p className="text-base leading-relaxed mb-6" style={{ color: "#4d6577" }}>
           Cuts land on the beat. Captions arrive on time. Nothing overstays its welcome.
         </p>
@@ -327,7 +382,7 @@ export default function Home() {
         className="relative min-h-[100svh] flex items-center justify-center px-5 sm:px-6 text-center"
         style={{ zIndex: 2 }}
       >
-        <div className="stage-copy max-w-xl mx-auto">
+        <div data-motion="center" className="stage-copy max-w-xl mx-auto">
           <h2
             className="font-disp font-extrabold mb-4"
             style={{ fontSize: "clamp(30px, 8vw, 56px)", letterSpacing: "-0.025em", lineHeight: 1.1, color: "#2F5D7C" }}
