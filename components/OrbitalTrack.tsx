@@ -96,6 +96,7 @@ export function OrbitalTrack({ progress }: { progress: number }) {
     scene.add(glow);
 
     function onResize() {
+      if (!mount) return;
       const w = mount.clientWidth || 320;
       const h = mount.clientHeight || 56;
       renderer.setSize(w, h);
