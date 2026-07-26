@@ -197,7 +197,11 @@ export default function Home() {
   }
 
   return (
-    <div ref={mainRef} className="relative" style={{ background: "#ffffff", color: "#2F5D7C" }}>
+    <div
+      ref={mainRef}
+      className="relative"
+      style={{ background: "#ffffff", color: "#2F5D7C", paddingBottom: "96px" }}
+    >
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -220,12 +224,12 @@ export default function Home() {
             boxShadow: "0 8px 32px -12px rgba(47,93,124,0.35)",
           }}
         >
-          <span className="text-sm font-bold tracking-tight font-mono" style={{ color: "#EAF6FF" }}>
+          <span className="text-sm font-bold tracking-tight font-mono whitespace-nowrap" style={{ color: "#EAF6FF" }}>
             NEX<span style={{ color: "#7EC8E3" }}>ELITE</span>
           </span>
           <a
             href="mailto:nexelitemedia@gmail.com"
-            className="text-xs sm:text-sm font-bold px-3.5 sm:px-4 py-2 sm:py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-px"
+            className="text-xs sm:text-sm font-bold px-3.5 sm:px-4 py-2 sm:py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-px whitespace-nowrap"
             style={{ background: "#7EC8E3", color: "#09121c", boxShadow: "0 0 20px -4px #7EC8E3" }}
           >
             Get in touch
@@ -233,7 +237,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6" style={{ zIndex: 2 }}>
+      <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 pt-24 sm:pt-28" style={{ zIndex: 2 }}>
         <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div className="max-w-xl motion-left">
             <div
@@ -244,8 +248,8 @@ export default function Home() {
                 color: "#2F5D7C",
               }}
             >
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#7EC8E3" }} />
-              Test transmission
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#7EC8E3" }} />
+              <span className="whitespace-nowrap">Test transmission</span>
             </div>
             <h1
               className="font-disp font-extrabold leading-none mb-5 sm:mb-6"
@@ -270,21 +274,21 @@ export default function Home() {
             <div className="flex items-center gap-3 flex-wrap">
               <a
                 href="#work"
-                className="flex items-center justify-center gap-1.5 text-sm font-bold px-6 py-3 sm:py-2.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+                className="flex items-center justify-center gap-1.5 text-sm font-bold px-6 py-3 sm:py-2.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap"
                 style={{ background: "#2F5D7C", color: "#ffffff" }}
               >
-                See the work <ArrowUpRight className="w-4 h-4" />
+                See the work <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
               </a>
               <a
                 href="mailto:nexelitemedia@gmail.com"
-                className="text-sm text-center px-6 py-3 sm:py-2.5 rounded-xl transition-all duration-150"
+                className="text-sm text-center px-6 py-3 sm:py-2.5 rounded-xl transition-all duration-150 whitespace-nowrap"
                 style={{ color: "#2F5D7C", border: "1px solid rgba(47,93,124,0.2)" }}
               >
                 Start a project
               </a>
             </div>
           </div>
-          <div className="hidden lg:block motion-right">
+          <div className="hidden lg:flex items-center justify-center motion-right">
             <SignalRings activeIndex={reduced ? -1 : ringIndex} />
           </div>
         </div>
@@ -292,7 +296,7 @@ export default function Home() {
           className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden min-[400px]:flex flex-col items-center gap-2"
           style={{ color: "rgba(47,93,124,0.4)" }}
         >
-          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold">Scroll</span>
+          <span className="text-[10px] uppercase tracking-[0.2em] font-semibold whitespace-nowrap">Scroll</span>
           <div className="w-px h-8 animate-pulse" style={{ background: "linear-gradient(180deg, rgba(47,93,124,0.4), transparent)" }} />
         </div>
       </section>
@@ -342,7 +346,7 @@ export default function Home() {
               {["Location scouted", "Lit properly", "Graded to brand"].map((chip) => (
                 <span
                   key={chip}
-                  className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
                   style={{ background: "rgba(126,200,227,0.14)", border: "1px solid rgba(126,200,227,0.4)", color: "#2F5D7C" }}
                 >
                   {chip}
@@ -350,7 +354,7 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <div className="order-1 lg:order-2 motion-right">
+          <div className="order-1 lg:order-2 motion-right flex items-center justify-center">
             <PhoneProof />
           </div>
         </div>
@@ -394,10 +398,10 @@ export default function Home() {
           </p>
           <a
             href="mailto:nexelitemedia@gmail.com"
-            className="inline-flex items-center gap-2 font-bold px-9 py-3.5 rounded-xl text-sm transition-all duration-200 hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 font-bold px-9 py-3.5 rounded-xl text-sm transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap"
             style={{ background: "#2F5D7C", color: "#ffffff" }}
           >
-            nexelitemedia@gmail.com <ArrowUpRight className="w-4 h-4" />
+            nexelitemedia@gmail.com <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
           </a>
         </div>
       </section>
