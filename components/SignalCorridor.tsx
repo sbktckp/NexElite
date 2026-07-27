@@ -14,18 +14,55 @@ import { SERVICES } from "@/lib/services";
  * Deliberately NOT a particle-morph: nothing changes shape. The world is
  * fixed; you travel through it. Scroll = distance down the corridor.
  *
+ * ── Why v2 ────────────────────────────────────────────────────────────────
+ * v1 was shelved because it "froze". Three causes, all fixed here:
+ *
+ *  1. No `webglcontextlost` handler. When the browser drops the GL context
+ *     (tab backgrounded, GPU pressure, driver reset) the canvas keeps its
+ *     last frame forever and every draw call silently no-ops. That reads as
+ *     a freeze. We now preventDefault the loss (making it recoverable),
+ *     stop the loop, and rebuild uniforms on restore.
+ *
+ *  2. A raw `window.scroll` listener competing with Lenis. Lenis drives
+ *     scroll from its own rAF, so native scroll events arrive out of phase
+ *     with the render loop — the camera stutters, then appears to stall at
+ *     whatever value it last latched. Progress is now read from a shared
+ *     mutable ref that ScrollTrigger writes, with a native fallback only if
+ *     nothing ever publishes to it.
+ *
+ *  3. `requestAnimationFrame` kept spinning while hidden and re-entered on
+ *     React 19 StrictMode's double-mount, stacking two loops on one canvas.
+ *     `renderer.setAnimationLoop` + a mount guard makes that impossible.
+ *
  * Perf: the spline is precomputed into a flat sample array at init, so the
  * render loop is pure array math — no curve reparameterization per frame.
  */
+
+/**
+ * Shared progress channel. `app/page.tsx` publishes normalized scroll
+ * (0 → 1) here from its existing ScrollTrigger, so the corridor and the
+ * DOM choreography read from one clock. `live` stays false until someone
+ * writes, which is how we know to fall back to native scroll.
+ */
+export const corridorProgress = { value: 0, live: false };
+
 export function SignalCorridor() {
   const mountRef = useRef<HTMLDivElement>(null);
+  const bootedRef = useRef(false);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
 
+    // StrictMode double-mount guard — two loops on one canvas is a freeze.
+    if (bootedRef.current) return;
+    bootedRef.current = true;
+
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
+    if (reduced) {
+      bootedRef.current = false;
+      return;
+    }
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -33,17 +70,24 @@ export function SignalCorridor() {
         antialias: true,
         alpha: true,
         powerPreference: "high-performance",
+        failIfMajorPerformanceCaveat: false,
       });
     } catch {
+      bootedRef.current = false;
       return;
     }
 
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
-    const DPR = Math.min(window.devicePixelRatio, isMobile ? 1.25 : 1.75);
+    const DPR = Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.75);
     renderer.setPixelRatio(DPR);
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
     renderer.setClearColor(0x000000, 0);
-    mount.appendChild(renderer.domElement);
+
+    const canvas = renderer.domElement;
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.display = "block";
+    mount.appendChild(canvas);
 
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0xffffff, 18, 78);
@@ -52,7 +96,7 @@ export function SignalCorridor() {
       isMobile ? 78 : 66,
       window.innerWidth / window.innerHeight,
       0.1,
-      200
+      240
     );
 
     /* ---------- corridor path ---------- */
@@ -220,16 +264,22 @@ export function SignalCorridor() {
     dust.frustumCulled = false;
     scene.add(dust);
 
-    /* ---------- scroll driver ---------- */
-    const scrollRef = { target: 0, current: 0 };
-    function onScroll() {
+    /* ---------- scroll driver ----------
+       Prefer the shared channel (written by ScrollTrigger, which is itself
+       driven by Lenis). Only fall back to native scrollY if nothing has
+       published — that's the no-JS-smooth-scroll path. */
+    let nativeProgress = 0;
+    function readNativeScroll() {
       const doc = document.documentElement;
       const max = doc.scrollHeight - doc.clientHeight;
-      scrollRef.target = max > 0 ? window.scrollY / max : 0;
+      nativeProgress = max > 0 ? window.scrollY / max : 0;
     }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    scrollRef.current = scrollRef.target;
+    window.addEventListener("scroll", readNativeScroll, { passive: true });
+    readNativeScroll();
+
+    const scrollRef = {
+      current: corridorProgress.live ? corridorProgress.value : nativeProgress,
+    };
 
     /* ---------- pointer parallax ---------- */
     const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -240,24 +290,65 @@ export function SignalCorridor() {
     if (!isMobile)
       window.addEventListener("pointermove", onMove, { passive: true });
 
-    function onResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
+    let resizeTimer = 0;
+    function applySize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (w === 0 || h === 0) return;
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(w, h, false);
+    }
+    function onResize() {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(applySize, 120);
     }
     window.addEventListener("resize", onResize);
+
+    /* ---------- context loss / restore ----------
+       Without preventDefault the context is unrecoverable and the canvas
+       is stuck on its last frame — the exact "freeze" that shelved v1. */
+    let contextLost = false;
+    function onContextLost(e: Event) {
+      e.preventDefault();
+      contextLost = true;
+      renderer.setAnimationLoop(null);
+    }
+    function onContextRestored() {
+      contextLost = false;
+      dustMat.uniforms.uPixelRatio.value = DPR;
+      dustMat.needsUpdate = true;
+      applySize();
+      renderer.setAnimationLoop(tick);
+    }
+    canvas.addEventListener("webglcontextlost", onContextLost, false);
+    canvas.addEventListener("webglcontextrestored", onContextRestored, false);
+
+    /* ---------- visibility pause ---------- */
+    function onVisibility() {
+      if (contextLost) return;
+      if (document.hidden) {
+        renderer.setAnimationLoop(null);
+      } else {
+        clock.getDelta(); // discard the gap so time doesn't jump
+        renderer.setAnimationLoop(tick);
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
 
     /* ---------- loop ---------- */
     const clock = new THREE.Clock();
     const lookTarget = new THREE.Vector3();
     const camPos = new THREE.Vector3();
-    let raf = 0;
 
     function tick() {
       const time = clock.getElapsedTime();
       dustMat.uniforms.uTime.value = time;
 
-      scrollRef.current += (scrollRef.target - scrollRef.current) * 0.075;
+      const target = corridorProgress.live
+        ? corridorProgress.value
+        : nativeProgress;
+      scrollRef.current += (target - scrollRef.current) * 0.075;
       const s = Math.max(0, Math.min(0.985, scrollRef.current * 0.92));
 
       ptr.x += (ptr.tx - ptr.x) * 0.05;
@@ -286,14 +377,19 @@ export function SignalCorridor() {
       }
 
       renderer.render(scene, camera);
-      raf = requestAnimationFrame(tick);
     }
-    raf = requestAnimationFrame(tick);
+
+    applySize();
+    renderer.setAnimationLoop(tick);
 
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
+      renderer.setAnimationLoop(null);
+      window.clearTimeout(resizeTimer);
+      window.removeEventListener("scroll", readNativeScroll);
       window.removeEventListener("resize", onResize);
+      document.removeEventListener("visibilitychange", onVisibility);
+      canvas.removeEventListener("webglcontextlost", onContextLost);
+      canvas.removeEventListener("webglcontextrestored", onContextRestored);
       if (!isMobile) window.removeEventListener("pointermove", onMove);
       ringGeo.dispose();
       haloGeo.dispose();
@@ -306,9 +402,10 @@ export function SignalCorridor() {
       dustGeo.dispose();
       dustMat.dispose();
       renderer.dispose();
-      if (renderer.domElement.parentNode === mount) {
-        mount.removeChild(renderer.domElement);
+      if (canvas.parentNode === mount) {
+        mount.removeChild(canvas);
       }
+      bootedRef.current = false;
     };
   }, []);
 
