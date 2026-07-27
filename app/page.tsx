@@ -11,9 +11,10 @@
    Progress: OrbitalTrack (3D sphere on a tube) inside the ChannelStrip dock.
    Journey animations: per-stage GSAP choreography (split, grid, cards, center).
 
-   One clock: the ScrollTrigger below publishes normalized progress to
-   `corridorProgress`, so the WebGL camera and the DOM choreography advance
-   from the same Lenis-driven source instead of racing native scroll events.
+   The corridor reads document scroll itself, in-frame — it is NOT driven
+   from here. Pushing progress in from the ScrollTrigger below meant a bad
+   `end` measurement would silently park the camera at t=0 while the scene
+   still rendered. Independent inputs, one failure at a time.
    ────────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from "react";
@@ -28,7 +29,7 @@ import { ChannelGrid } from "@/components/ChannelGrid";
 import { ChannelStrip } from "@/components/ChannelStrip";
 import { ServicePanel } from "@/components/ServicePanel";
 import { SignalRings } from "@/components/SignalRings";
-import { SignalCorridor, corridorProgress } from "@/components/SignalCorridor";
+import { SignalCorridor } from "@/components/SignalCorridor";
 import { SERVICES, type Service } from "@/lib/services";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -118,9 +119,6 @@ export default function Home() {
       end: () => document.documentElement.scrollHeight - window.innerHeight,
       scrub: true,
       onUpdate: (self) => {
-        // Single source of truth for the WebGL corridor camera.
-        corridorProgress.value = self.progress;
-        corridorProgress.live = true;
         setRingIndex(
           Math.min(SERVICES.length - 1, Math.floor(self.progress * SERVICES.length))
         );
@@ -197,7 +195,6 @@ export default function Home() {
       cancelAnimationFrame(id);
       lenis.destroy();
       st.kill();
-      corridorProgress.live = false;
       copyTriggers.forEach((t) => {
         t.scrollTrigger?.kill();
         t.kill();
