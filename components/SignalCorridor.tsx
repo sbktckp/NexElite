@@ -14,35 +14,28 @@ import { SERVICES } from "@/lib/services";
  * Deliberately NOT a particle-morph: nothing changes shape. The world is
  * fixed; you travel through it. Scroll = distance down the corridor.
  *
- * ── Why v2 ────────────────────────────────────────────────────────────────
- * v1 was shelved because it "froze". Three causes, all fixed here:
+ * ── Scroll input (v3) ─────────────────────────────────────────────────────
+ * Progress is recomputed from the document EVERY FRAME, not pushed in from
+ * scroll events or from a ScrollTrigger handshake. Both of those had a
+ * failure mode where the corridor rendered correctly but the camera never
+ * moved: if nothing ever published to the shared ref, or if the listener
+ * fired out of phase with Lenis's own rAF, the camera simply sat at t=0
+ * with the gates visible and the tick rings still spinning — looking alive
+ * but going nowhere.
  *
- *  1. No `webglcontextlost` handler. When the browser drops the GL context
- *     (tab backgrounded, GPU pressure, driver reset) the canvas keeps its
- *     last frame forever and every draw call silently no-ops. That reads as
- *     a freeze. We now preventDefault the loss (making it recoverable),
- *     stop the loop, and rebuild uniforms on restore.
- *
- *  2. A raw `window.scroll` listener competing with Lenis. Lenis drives
- *     scroll from its own rAF, so native scroll events arrive out of phase
- *     with the render loop — the camera stutters, then appears to stall at
- *     whatever value it last latched. Progress is now read from a shared
- *     mutable ref that ScrollTrigger writes, with a native fallback only if
- *     nothing ever publishes to it.
- *
- *  3. `requestAnimationFrame` kept spinning while hidden and re-entered on
- *     React 19 StrictMode's double-mount, stacking two loops on one canvas.
- *     `renderer.setAnimationLoop` + a mount guard makes that impossible.
+ * Polling in-frame is ~free (two layout reads that are already cached by
+ * the time we render) and cannot desync, because there is no second source
+ * of truth. `corridorProgress` remains supported as an OPTIONAL override
+ * for anything that wants to scrub the camera independently of scroll.
  *
  * Perf: the spline is precomputed into a flat sample array at init, so the
  * render loop is pure array math — no curve reparameterization per frame.
  */
 
 /**
- * Shared progress channel. `app/page.tsx` publishes normalized scroll
- * (0 → 1) here from its existing ScrollTrigger, so the corridor and the
- * DOM choreography read from one clock. `live` stays false until someone
- * writes, which is how we know to fall back to native scroll.
+ * Optional external override. Leave `live` false and the corridor tracks
+ * document scroll on its own. Set `live = true` and write `value` (0 → 1)
+ * to drive the camera from somewhere else entirely.
  */
 export const corridorProgress = { value: 0, live: false };
 
@@ -265,21 +258,22 @@ export function SignalCorridor() {
     scene.add(dust);
 
     /* ---------- scroll driver ----------
-       Prefer the shared channel (written by ScrollTrigger, which is itself
-       driven by Lenis). Only fall back to native scrollY if nothing has
-       published — that's the no-JS-smooth-scroll path. */
-    let nativeProgress = 0;
-    function readNativeScroll() {
-      const doc = document.documentElement;
+       Polled in-frame. No listeners, no handshake, no second source of
+       truth — this is what makes the camera actually move under Lenis.
+       `document.scrollingElement` is used because Lenis scrolls the real
+       document, but on some mobile engines `window.scrollY` lags a frame
+       behind `scrollTop` during momentum. */
+    function readProgress(): number {
+      if (corridorProgress.live) {
+        return Math.max(0, Math.min(1, corridorProgress.value));
+      }
+      const doc = document.scrollingElement || document.documentElement;
       const max = doc.scrollHeight - doc.clientHeight;
-      nativeProgress = max > 0 ? window.scrollY / max : 0;
+      if (max <= 0) return 0;
+      return Math.max(0, Math.min(1, doc.scrollTop / max));
     }
-    window.addEventListener("scroll", readNativeScroll, { passive: true });
-    readNativeScroll();
 
-    const scrollRef = {
-      current: corridorProgress.live ? corridorProgress.value : nativeProgress,
-    };
+    const scrollRef = { current: readProgress() };
 
     /* ---------- pointer parallax ---------- */
     const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -307,7 +301,7 @@ export function SignalCorridor() {
 
     /* ---------- context loss / restore ----------
        Without preventDefault the context is unrecoverable and the canvas
-       is stuck on its last frame — the exact "freeze" that shelved v1. */
+       is stuck on its last frame. */
     let contextLost = false;
     function onContextLost(e: Event) {
       e.preventDefault();
@@ -345,9 +339,7 @@ export function SignalCorridor() {
       const time = clock.getElapsedTime();
       dustMat.uniforms.uTime.value = time;
 
-      const target = corridorProgress.live
-        ? corridorProgress.value
-        : nativeProgress;
+      const target = readProgress();
       scrollRef.current += (target - scrollRef.current) * 0.075;
       const s = Math.max(0, Math.min(0.985, scrollRef.current * 0.92));
 
@@ -385,7 +377,6 @@ export function SignalCorridor() {
     return () => {
       renderer.setAnimationLoop(null);
       window.clearTimeout(resizeTimer);
-      window.removeEventListener("scroll", readNativeScroll);
       window.removeEventListener("resize", onResize);
       document.removeEventListener("visibilitychange", onVisibility);
       canvas.removeEventListener("webglcontextlost", onContextLost);
