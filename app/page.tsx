@@ -1,20 +1,24 @@
 "use client";
 
 /* ──────────────────────────────────────────────────────────────────────────
-   NexElite Media — landing page
+   NexElite Media, landing page
 
-   Signature visual: SignalCorridor — a Three.js scroll journey where the
-   CAMERA flies along a spline through eight persistent ring-gates (one per
-   service channel). Nothing morphs; you travel through a fixed world.
+   Signature visual: SignalCorridor, a Three.js scroll journey where the
+   camera flies along a spline through a field of static that resolves into
+   structure. Nothing morphs into a logo. The transformation is noise into
+   signal, which is what the headline promises.
 
-   Hero accent: SignalRings (flat SVG radar sweep).
-   Progress: OrbitalTrack (3D sphere on a tube) inside the ChannelStrip dock.
-   Journey animations: per-stage GSAP choreography (split, grid, cards, center).
+   Progress: JourneyHUD, fused with the corridor. It reads the same live
+   state the renderer writes, so the rail, the caption, and the ring in 3D
+   all move on one clock.
 
-   The corridor reads document scroll itself, in-frame — it is NOT driven
+   Journey animations: per stage GSAP choreography (split, grid, cards,
+   center).
+
+   The corridor reads document scroll itself, in frame. It is not driven
    from here. Pushing progress in from the ScrollTrigger below meant a bad
-   `end` measurement would silently park the camera at t=0 while the scene
-   still rendered. Independent inputs, one failure at a time.
+   end measurement would silently park the camera at zero while the scene
+   still rendered.
    ────────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from "react";
@@ -26,7 +30,7 @@ import { PhoneProof } from "@/components/PhoneProof";
 import { StatsProof } from "@/components/StatsProof";
 import { StickyCTA } from "@/components/StickyCTA";
 import { ChannelGrid } from "@/components/ChannelGrid";
-import { ChannelStrip } from "@/components/ChannelStrip";
+import { JourneyHUD } from "@/components/JourneyHUD";
 import { ServicePanel } from "@/components/ServicePanel";
 import { SignalRings } from "@/components/SignalRings";
 import { SignalCorridor } from "@/components/SignalCorridor";
@@ -210,10 +214,10 @@ export default function Home() {
     <div
       ref={mainRef}
       className="relative"
-      style={{ background: "#ffffff", color: "#2F5D7C", paddingBottom: "96px" }}
+      style={{ background: "#ffffff", color: "#2F5D7C", paddingBottom: "112px" }}
     >
       <SignalCorridor />
-      <ChannelStrip />
+      <JourneyHUD />
       <StickyCTA />
       <ServicePanel service={selectedService} onClose={() => setSelectedService(null)} />
 
@@ -253,7 +257,7 @@ export default function Home() {
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#7EC8E3" }} />
-              <span className="font-tech tracking-wider whitespace-nowrap">TEST TRANSMISSION</span>
+              <span className="font-tech tracking-wider whitespace-nowrap">Test transmission</span>
             </div>
             <h1
               className="font-disp font-extrabold leading-[0.95] mb-6 sm:mb-7"
@@ -273,7 +277,8 @@ export default function Home() {
               </span>
             </h1>
             <p className="text-lg sm:text-xl mb-9 sm:mb-11 leading-relaxed" style={{ color: "#4d6577", maxWidth: "480px" }}>
-              NexElite tunes it into signal — reels, campaigns, and brand content that actually get watched.
+              We tune it into signal. Reels, campaigns, and brand content that
+              people actually stop to watch.
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <a
@@ -302,10 +307,10 @@ export default function Home() {
           </div>
         </div>
         <div
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 hidden min-[400px]:flex flex-col items-center gap-2"
+          className="absolute bottom-24 left-1/2 -translate-x-1/2 hidden min-[400px]:flex flex-col items-center gap-2"
           style={{ color: "rgba(47,93,124,0.45)" }}
         >
-          <span className="font-tech text-[10px] uppercase tracking-[0.25em] font-bold whitespace-nowrap">Scroll</span>
+          <span className="font-tech text-[10px] uppercase tracking-[0.25em] font-bold whitespace-nowrap">Scroll to tune</span>
           <div className="w-px h-9 animate-pulse" style={{ background: "linear-gradient(180deg, rgba(47,93,124,0.45), transparent)" }} />
         </div>
       </section>
@@ -324,7 +329,7 @@ export default function Home() {
             One frequency.
           </h2>
           <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "#4d6577" }}>
-            Tap a channel, or use arrow keys, to see what it delivers.
+            Tap a channel, or use the bar at the bottom, to see what it delivers.
           </p>
         </div>
         <div data-motion="grid" className="stage-copy w-full">
