@@ -2,12 +2,18 @@
 
 /* ──────────────────────────────────────────────────────────────────────────
    NexElite Media — landing page
+
+   Signature visual: SignalCorridor — a Three.js scroll journey where the
+   CAMERA flies along a spline through eight persistent ring-gates (one per
+   service channel). Nothing morphs; you travel through a fixed world.
+
    Hero accent: SignalRings (flat SVG radar sweep).
    Progress: OrbitalTrack (3D sphere on a tube) inside the ChannelStrip dock.
    Journey animations: per-stage GSAP choreography (split, grid, cards, center).
 
-   NOTE: SignalCorridor (Three.js camera flythrough) is intentionally NOT
-   mounted here — it freezes the renderer. See components/SignalCorridor.tsx.
+   One clock: the ScrollTrigger below publishes normalized progress to
+   `corridorProgress`, so the WebGL camera and the DOM choreography advance
+   from the same Lenis-driven source instead of racing native scroll events.
    ────────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from "react";
@@ -22,6 +28,7 @@ import { ChannelGrid } from "@/components/ChannelGrid";
 import { ChannelStrip } from "@/components/ChannelStrip";
 import { ServicePanel } from "@/components/ServicePanel";
 import { SignalRings } from "@/components/SignalRings";
+import { SignalCorridor, corridorProgress } from "@/components/SignalCorridor";
 import { SERVICES, type Service } from "@/lib/services";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -111,6 +118,9 @@ export default function Home() {
       end: () => document.documentElement.scrollHeight - window.innerHeight,
       scrub: true,
       onUpdate: (self) => {
+        // Single source of truth for the WebGL corridor camera.
+        corridorProgress.value = self.progress;
+        corridorProgress.live = true;
         setRingIndex(
           Math.min(SERVICES.length - 1, Math.floor(self.progress * SERVICES.length))
         );
@@ -187,6 +197,7 @@ export default function Home() {
       cancelAnimationFrame(id);
       lenis.destroy();
       st.kill();
+      corridorProgress.live = false;
       copyTriggers.forEach((t) => {
         t.scrollTrigger?.kill();
         t.kill();
@@ -204,14 +215,7 @@ export default function Home() {
       className="relative"
       style={{ background: "#ffffff", color: "#2F5D7C", paddingBottom: "96px" }}
     >
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          zIndex: 0,
-          background:
-            "radial-gradient(ellipse 75% 60% at 50% 40%, rgba(126,200,227,0.16) 0%, transparent 68%), #ffffff",
-        }}
-      />
+      <SignalCorridor />
       <ChannelStrip />
       <StickyCTA />
       <ServicePanel service={selectedService} onClose={() => setSelectedService(null)} />
