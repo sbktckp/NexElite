@@ -9,17 +9,29 @@ import { SERVICES } from "@/lib/services";
  *
  * Mechanism: the CAMERA flies along a CatmullRom spline through persistent
  * 3D geometry — eight ring-gates, one per service channel, plus a volumetric
- * dust field for speed cues. Gates ignite as the camera passes through them.
+ * dust field for speed cues. Gates ignite as the camera approaches, then
+ * dissolve as it passes through them.
  *
  * Deliberately NOT a particle-morph: nothing changes shape. The world is
  * fixed; you travel through it. Scroll = distance down the corridor.
  *
+ * ── Art direction ─────────────────────────────────────────────────────────
+ * This layer sits BEHIND page copy at z-index 0. That constraint drives
+ * every value here. A gate at closest approach subtends the whole viewport,
+ * so peaking its opacity at that moment (which an earlier pass did) parks a
+ * hard slate ring directly behind the channel cards and reads as a static
+ * circle, not as travel.
+ *
+ * The ignition curve therefore peaks on APPROACH — while the gate is still
+ * a discrete shape in the distance — and falls away to near nothing at the
+ * pass-through, where it would otherwise be pure obstruction. Motion is
+ * carried by the arrival, not the collision.
+ *
  * ── Diagnostics ───────────────────────────────────────────────────────────
- * Every early-return here used to be silent, so a component that never
- * mounted looked identical to one that mounted and rendered nothing. Each
- * bail now records WHY, and appending `?debug=1` to the URL surfaces it as
- * an on-screen badge along with live canvas size and scroll progress.
- * Without the flag the badge never renders.
+ * Append `?debug=1` to the URL for an on-screen status badge with live
+ * canvas size, scroll progress, and camera depth. Every early return
+ * records why it bailed, so "never mounted" is distinguishable from
+ * "mounted and drew nothing". Without the flag the badge never renders.
  */
 
 /**
@@ -95,9 +107,7 @@ export function SignalCorridor() {
     setStatus("running");
 
     const scene = new THREE.Scene();
-    // Fog pulled back: at 18→78 on a white background the gates washed out
-    // to near-invisible before the camera ever reached them.
-    scene.fog = new THREE.Fog(0xffffff, 30, 130);
+    scene.fog = new THREE.Fog(0xffffff, 26, 120);
 
     const camera = new THREE.PerspectiveCamera(
       isMobile ? 78 : 66,
@@ -149,21 +159,23 @@ export function SignalCorridor() {
     };
     const gates: Gate[] = [];
 
-    // Thicker tube — 0.08 was sub-pixel at distance on a white field.
-    const ringGeo = new THREE.TorusGeometry(4.6, 0.14, 8, 72);
-    const haloGeo = new THREE.TorusGeometry(4.6, 0.34, 6, 48);
+    // Slimmer than the contrast pass (0.14 read as a heavy hoop up close),
+    // still thick enough to survive at distance on white.
+    const ringGeo = new THREE.TorusGeometry(4.6, 0.1, 8, 72);
+    const haloGeo = new THREE.TorusGeometry(4.6, 0.3, 6, 48);
 
     SERVICES.forEach((svc, i) => {
       const t = (i + 1.2) / (N + 2);
       const pos = sampleAt(t, new THREE.Vector3());
       const tangent = path.getTangentAt(Math.min(0.999, t));
-      // Darken toward slate so geometry reads against white.
-      const color = new THREE.Color(svc.tone).lerp(new THREE.Color(0x2f5d7c), 0.35);
+      // Keep more of the channel's own tone; 0.35 toward slate flattened
+      // all eight gates into the same grey.
+      const color = new THREE.Color(svc.tone).lerp(new THREE.Color(0x2f5d7c), 0.18);
 
       const ringMat = new THREE.MeshBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.75,
+        opacity: 0.4,
       });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.position.copy(pos);
@@ -199,7 +211,7 @@ export function SignalCorridor() {
       const tickMat = new THREE.LineBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.3,
       });
       const ticks = new THREE.LineSegments(tickGeo, tickMat);
       ticks.position.copy(pos);
@@ -247,7 +259,7 @@ export function SignalCorridor() {
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
           vFog = clamp((-mv.z - 20.0) / 100.0, 0.0, 1.0);
           gl_Position = projectionMatrix * mv;
-          gl_PointSize = (1.8 + aSeed * 3.0) * uPixelRatio * (14.0 / max(-mv.z, 1.0));
+          gl_PointSize = (1.6 + aSeed * 2.8) * uPixelRatio * (14.0 / max(-mv.z, 1.0));
         }
       `,
       fragmentShader: `
@@ -262,7 +274,7 @@ export function SignalCorridor() {
           vec3 sand  = vec3(0.851, 0.725, 0.541);
           vec3 col = mix(slate, sky, smoothstep(0.15, 0.85, vSeed));
           col = mix(col, sand, step(0.9, vSeed) * 0.8);
-          float a = (1.0 - smoothstep(0.2, 0.5, d)) * (1.0 - vFog) * (0.5 + vSeed * 0.4);
+          float a = (1.0 - smoothstep(0.2, 0.5, d)) * (1.0 - vFog) * (0.42 + vSeed * 0.38);
           gl_FragColor = vec4(col, a);
         }
       `,
@@ -343,6 +355,11 @@ export function SignalCorridor() {
     const camPos = new THREE.Vector3();
     let frames = 0;
 
+    // Ignition window, in normalized path units.
+    const REACH = 0.1; // how far out a gate starts to register
+    const PEAK = 0.045; // distance at which it is brightest
+    const THROUGH = 0.018; // inside this, it is collapsing behind you
+
     function tick() {
       const time = clock.getElapsedTime();
       dustMat.uniforms.uTime.value = time;
@@ -366,14 +383,23 @@ export function SignalCorridor() {
 
       for (let i = 0; i < gates.length; i++) {
         const g = gates[i];
-        const near = 1 - Math.min(1, Math.abs(g.t - s) / 0.085);
-        (g.ring.material as THREE.MeshBasicMaterial).opacity = 0.5 + near * 0.5;
-        (g.halo.material as THREE.MeshBasicMaterial).opacity = near * near * 0.3;
-        (g.ticks.material as THREE.LineBasicMaterial).opacity = 0.3 + near * 0.5;
-        const sc = 1 + near * 0.07;
+        const dist = Math.abs(g.t - s);
+
+        // Rises from REACH in to PEAK...
+        const approach = 1 - Math.min(1, Math.max(0, dist - PEAK) / (REACH - PEAK));
+        // ...then falls away inside PEAK, so the pass-through is a dissolve
+        // rather than a full-viewport hoop sitting on top of the copy.
+        const passing = Math.min(1, Math.max(0, dist - THROUGH) / (PEAK - THROUGH));
+        const ignite = approach * (dist < PEAK ? passing : 1);
+
+        (g.ring.material as THREE.MeshBasicMaterial).opacity = 0.1 + ignite * 0.55;
+        (g.halo.material as THREE.MeshBasicMaterial).opacity = ignite * ignite * 0.22;
+        (g.ticks.material as THREE.LineBasicMaterial).opacity = 0.06 + ignite * 0.4;
+
+        const sc = 1 + ignite * 0.06;
         g.ring.scale.setScalar(sc);
         g.halo.scale.setScalar(sc * 1.06);
-        g.ticks.rotation.z = time * (0.12 + near * 0.5);
+        g.ticks.rotation.z = time * (0.12 + ignite * 0.5);
       }
 
       renderer.render(scene, camera);
