@@ -5,43 +5,64 @@ import * as THREE from "three";
 import { SERVICES } from "@/lib/services";
 
 /**
- * SignalCorridor — "every channel starts as noise."
+ * SignalCorridor, the journey layer.
  *
- * The page's own headline is the mechanic. You begin inside a cloud of
- * incoherent static: ~1400 particles scattered through a fat cylinder,
- * jittering at random. As you scroll, each particle RESOLVES — migrating
- * from its chaos position to an ordered position on a ring around the
- * corridor axis, its jitter damping to zero and its colour shifting from
- * dead grey to brand sky/sand. By the end of the page the static has
- * become architecture, then collapses to a single axis of light.
+ * The page headline is the mechanic. You open inside a cloud of incoherent
+ * static: roughly 1400 particles scattered through a fat cylinder, jittering
+ * at random. As you scroll, each particle resolves, migrating from its chaos
+ * position to an ordered position on a ring around the corridor axis, its
+ * jitter damping to nothing and its colour shifting from dead grey to brand
+ * sky and sand. By the end the static has become architecture, then collapses
+ * onto a single axis of light.
  *
- * Nothing morphs into a logo and nothing spells a word. The transformation
- * is noise → structure, which is the one claim the agency actually makes.
+ * Nothing morphs into a logo and nothing spells a word. The transformation is
+ * noise into structure, which is the one claim the agency actually makes.
  *
- * ── Construction ──────────────────────────────────────────────────────────
- * Every particle carries THREE positions as attributes, all precomputed:
- *   aChaos  — where it starts, random in a cylinder
- *   aOrder  — where it belongs, on a Frenet-framed ring around the spline
- *   aCenter — the spline point itself, for the final collapse
- * The vertex shader mixes between them. No per-frame CPU particle work.
+ * Construction
+ * Every particle carries three positions as attributes, all precomputed:
+ * chaos (where it starts, random in a cylinder), order (where it belongs, on
+ * a Frenet framed ring around the spline), and centre (the spline point
+ * itself, for the final collapse). The vertex shader mixes between them, so
+ * there is no per frame CPU particle work at all.
  *
- * Resolve is staggered by seed, so the field doesn't snap all at once —
- * it crystallises unevenly, front to back, like a signal locking in.
+ * Resolve is staggered by seed, so the field does not snap all at once. It
+ * crystallises unevenly, like a signal locking in.
  *
- * Scroll VELOCITY drives a camera FOV punch and particle scale, so fast
- * scrolling feels like acceleration rather than scrubbing. That single
- * detail is most of what separates "3D on a page" from "a ride".
+ * Scroll velocity drives a camera FOV punch and particle scale, so fast
+ * scrolling feels like acceleration rather than scrubbing. That one detail is
+ * most of what separates 3D on a page from a ride.
  *
- * ── Art direction ─────────────────────────────────────────────────────────
- * This layer sits behind page copy at z-index 0, so gates ignite on
- * APPROACH and dissolve at the pass-through — peaking opacity while the
- * ring engulfs the viewport would park a hard hoop behind the text.
+ * Art direction
+ * This layer sits behind page copy at z index 0, so gates ignite on approach
+ * and dissolve at the pass through. Peaking opacity while the ring engulfs
+ * the viewport would park a hard hoop behind the text.
  *
- * ── Diagnostics ───────────────────────────────────────────────────────────
- * `?debug=1` shows status, canvas size, progress, camera depth, resolve.
+ * Diagnostics
+ * Add ?debug=1 to the URL for status, canvas size, progress, camera depth,
+ * resolve, speed and collapse.
  */
 
 export const corridorProgress = { value: 0, live: false };
+
+/**
+ * Live journey state, written every frame by the corridor and read by the
+ * HUD. A plain mutable object rather than React state on purpose: this
+ * updates 60 times a second and must never trigger a re-render of the page.
+ * The HUD samples it on its own throttled loop.
+ */
+export const corridorState = {
+  progress: 0,
+  resolve: 0,
+  collapse: 0,
+  speed: 0,
+  gate: 0,
+  ignite: 0,
+};
+
+/** Gate positions along the path, so the HUD can scrub to an exact channel. */
+export function gateFraction(index: number, total: number) {
+  return (index + 1.2) / (total + 2) / 0.92;
+}
 
 type Status =
   | "booting"
@@ -164,6 +185,31 @@ export function SignalCorridor() {
     const tube = new THREE.Mesh(tubeGeo, tubeMat);
     scene.add(tube);
 
+    /* ---------- progress spine ----------
+       The literal trail you have travelled, drawn down the corridor axis
+       and revealed by draw range. This is what ties the flat progress rail
+       at the bottom of the page to the space you are moving through: the
+       rail and the spine fill at exactly the same rate. */
+    const SPINE = 400;
+    const spinePts = new Float32Array((SPINE + 1) * 3);
+    for (let i = 0; i <= SPINE; i++) {
+      const pt = path.getPointAt(i / SPINE);
+      spinePts[i * 3] = pt.x;
+      spinePts[i * 3 + 1] = pt.y;
+      spinePts[i * 3 + 2] = pt.z;
+    }
+    const spineGeo = new THREE.BufferGeometry();
+    spineGeo.setAttribute("position", new THREE.BufferAttribute(spinePts, 3));
+    const spineMat = new THREE.LineBasicMaterial({
+      color: 0x7ec8e3,
+      transparent: true,
+      opacity: 0.5,
+    });
+    const spine = new THREE.Line(spineGeo, spineMat);
+    spine.frustumCulled = false;
+    spineGeo.setDrawRange(0, 2);
+    scene.add(spine);
+
     /* ---------- ring gates ---------- */
     type Gate = {
       ring: THREE.Mesh;
@@ -229,7 +275,7 @@ export function SignalCorridor() {
       gates.push({ ring, halo, ticks, t });
     });
 
-    /* ---------- the field: noise → signal ---------- */
+    /* ---------- the field: noise into signal ---------- */
     const COUNT = isMobile ? 700 : 1400;
     const aChaos = new Float32Array(COUNT * 3);
     const aOrder = new Float32Array(COUNT * 3);
@@ -271,8 +317,8 @@ export function SignalCorridor() {
     }
 
     const fieldGeo = new THREE.BufferGeometry();
-    // `position` must exist for frustum/bounds machinery; chaos is the
-    // authoritative start, so alias it.
+    // `position` must exist for bounds machinery; chaos is the authoritative
+    // start, so alias it.
     fieldGeo.setAttribute("position", new THREE.BufferAttribute(aChaos, 3));
     fieldGeo.setAttribute("aOrder", new THREE.BufferAttribute(aOrder, 3));
     fieldGeo.setAttribute("aCenter", new THREE.BufferAttribute(aCenter, 3));
@@ -345,7 +391,7 @@ export function SignalCorridor() {
           float d = length(c);
           if (d > 0.5) discard;
 
-          // Dead static grey → brand colour as the signal locks in.
+          // Dead static grey into brand colour as the signal locks in.
           vec3 noise = vec3(0.62, 0.64, 0.66);
           vec3 slate = vec3(0.184, 0.365, 0.486);
           vec3 sky   = vec3(0.494, 0.784, 0.890);
@@ -403,7 +449,7 @@ export function SignalCorridor() {
     }
     window.addEventListener("resize", onResize);
 
-    /* ---------- context loss / restore ---------- */
+    /* ---------- context loss and restore ---------- */
     let contextLost = false;
     function onContextLost(e: Event) {
       e.preventDefault();
@@ -448,8 +494,8 @@ export function SignalCorridor() {
       scrollRef.current += (target - scrollRef.current) * 0.075;
       const s = Math.max(0, Math.min(0.985, scrollRef.current * 0.92));
 
-      // Scroll velocity → acceleration cues. Smoothed hard, because raw
-      // per-frame delta is far too spiky to drive optics with.
+      // Scroll velocity into acceleration cues. Smoothed hard, because raw
+      // per frame delta is far too spiky to drive optics with.
       const raw = Math.abs(scrollRef.current - scrollRef.prev) / dt;
       speed += (Math.min(1, raw * 1.6) - speed) * 0.12;
       scrollRef.prev = scrollRef.current;
@@ -466,6 +512,11 @@ export function SignalCorridor() {
 
       tubeMat.opacity = 0.02 + resolve * 0.06;
 
+      // Spine reveals in lockstep with the DOM progress rail.
+      const revealed = Math.max(2, Math.floor(scrollRef.current * SPINE));
+      spineGeo.setDrawRange(0, revealed);
+      spineMat.opacity = 0.28 + speed * 0.4;
+
       ptr.x += (ptr.tx - ptr.x) * 0.05;
       ptr.y += (ptr.ty - ptr.y) * 0.05;
 
@@ -480,7 +531,7 @@ export function SignalCorridor() {
       camera.rotation.z =
         Math.sin(time * 0.12) * 0.03 + ptr.x * 0.04 + speed * 0.05;
 
-      // FOV punch on fast scroll — the cheapest convincing sense of speed.
+      // FOV punch on fast scroll, the cheapest convincing sense of speed.
       const wantFov = BASE_FOV + speed * 11;
       if (Math.abs(camera.fov - wantFov) > 0.01) {
         camera.fov += (wantFov - camera.fov) * 0.15;
@@ -503,6 +554,25 @@ export function SignalCorridor() {
         g.halo.scale.setScalar(sc * 1.06);
         g.ticks.rotation.z = time * (0.12 + ignite * 0.5);
       }
+
+      // Publish for the HUD. Nearest gate wins, with its ignition strength,
+      // so the rail can pulse at the same instant the ring lights up.
+      let bestGate = 0;
+      let bestIgnite = 0;
+      for (let i = 0; i < gates.length; i++) {
+        const dd = Math.abs(gates[i].t - s);
+        const ig = 1 - Math.min(1, dd / REACH);
+        if (ig > bestIgnite) {
+          bestIgnite = ig;
+          bestGate = i;
+        }
+      }
+      corridorState.progress = target;
+      corridorState.resolve = resolve;
+      corridorState.collapse = collapse;
+      corridorState.speed = speed;
+      corridorState.gate = bestGate;
+      corridorState.ignite = bestIgnite;
 
       renderer.render(scene, camera);
 
@@ -537,6 +607,8 @@ export function SignalCorridor() {
       });
       tubeGeo.dispose();
       tubeMat.dispose();
+      spineGeo.dispose();
+      spineMat.dispose();
       fieldGeo.dispose();
       fieldMat.dispose();
       renderer.dispose();
