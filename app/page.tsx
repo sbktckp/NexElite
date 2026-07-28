@@ -40,18 +40,22 @@ import { WorkTeasers } from "@/components/WorkTeasers";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { onFrame } from "@/lib/frame";
 import dynamic from "next/dynamic";
-
+import { EASE, RISE, STAGGER, REVEAL_TRIGGER } from "@/lib/motion";
 /**
- * Three.js is roughly 700kb raw. Statically imported it landed in the first
- * load, so the visitor waited on the journey before seeing the headline.
- * Loaded this way the hero paints from static HTML and the corridor streams
- * in behind it. Perceived speed beats measured speed.
+ * Three.js is roughly 700kb raw and lives in its own chunk via this dynamic
+ * import, so it is never parsed as part of the page module itself.
+ *
+ * Known limitation, measured not assumed: Turbopack still emits an eager
+ * <script async> for this chunk in the prerendered HTML, so the browser
+ * downloads it during first load even though nothing renders it yet. It is
+ * async, so it does not block parse or paint, but it is bandwidth the hero
+ * does not need. scripts/check-bundle.mjs reports this every build.
+ * See the note in that script for the options.
  */
 const SignalCorridor = dynamic(
   () => import("@/components/SignalCorridor").then((m) => m.SignalCorridor),
   { ssr: false }
 );
-import { EASE, RISE, STAGGER, REVEAL_TRIGGER } from "@/lib/motion";
 
 gsap.registerPlugin(ScrollTrigger);
 

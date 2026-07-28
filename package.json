@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "verify": "tsc --noEmit && eslint . && next build && node scripts/check-bundle.mjs"
   },
   "dependencies": {
     "gsap": "^3.15.0",
