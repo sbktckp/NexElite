@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=sbktckp&repo=NexElite&theme=highcontrast&hide_border=true" alt="repo snapshot" />
+  <img src="https://github-stats-extended.vercel.app/api/pin/?username=sbktckp&repo=NexElite&theme=highcontrast&hide_border=true" alt="repo snapshot" />
 </p>
 
 ---
