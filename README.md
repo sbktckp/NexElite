@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://github-readme-streak-stats.herokuapp.com/?user=sbktckp&theme=highcontrast&hide_border=true&card_width=600" alt="build streak" />
+  <img src="https://github-readme-stats.vercel.app/api/pin/?username=sbktckp&repo=NexElite&theme=highcontrast&hide_border=true" alt="repo snapshot" />
 </p>
 
 ---
