@@ -33,12 +33,39 @@ import { ChannelGrid } from "@/components/ChannelGrid";
 import { JourneyHUD } from "@/components/JourneyHUD";
 import { ServicePanel } from "@/components/ServicePanel";
 import { SignalRings } from "@/components/SignalRings";
-import { SignalCorridor } from "@/components/SignalCorridor";
+
 import { SERVICES, type Service } from "@/lib/services";
+import { CASE_STUDIES } from "@/lib/work";
+import { WorkTeasers } from "@/components/WorkTeasers";
+import { useReducedMotion } from "@/lib/useReducedMotion";
+import { onFrame } from "@/lib/frame";
+import dynamic from "next/dynamic";
+
+/**
+ * Three.js is roughly 700kb raw. Statically imported it landed in the first
+ * load, so the visitor waited on the journey before seeing the headline.
+ * Loaded this way the hero paints from static HTML and the corridor streams
+ * in behind it. Perceived speed beats measured speed.
+ */
+const SignalCorridor = dynamic(
+  () => import("@/components/SignalCorridor").then((m) => m.SignalCorridor),
+  { ssr: false }
+);
+import { EASE, RISE, STAGGER, REVEAL_TRIGGER } from "@/lib/motion";
 
 gsap.registerPlugin(ScrollTrigger);
 
+/** The method beat. Straight from the brief, no embellishment. */
+const PROCESS = [
+  { name: "Discover", note: "We learn the business before we touch a camera." },
+  { name: "Strategy", note: "Pick the channels that suit you, drop the ones that do not." },
+  { name: "Create", note: "Shoot, edit, grade, caption. Made for where it lands." },
+  { name: "Launch", note: "Ship on schedule, watch the first 48 hours closely." },
+  { name: "Scale", note: "Double down on what performed, cut what did not." },
+];
+
 function Stage({
+  id,
   align = "left",
   kicker,
   title,
@@ -52,6 +79,7 @@ function Stage({
   children?: React.ReactNode;
   innerRef?: React.Ref<HTMLDivElement>;
   motion?: string;
+  id?: string;
 }) {
   const alignCls =
     align === "center"
@@ -61,6 +89,7 @@ function Stage({
         : "items-start text-left";
   return (
     <section
+      id={id}
       className="relative min-h-[100svh] flex items-center px-5 sm:px-6 py-24 sm:py-20"
       style={{ zIndex: 2 }}
     >
@@ -98,22 +127,16 @@ function Stage({
 
 export default function Home() {
   const mainRef = useRef<HTMLDivElement>(null);
-  const [reduced, setReduced] = useState<boolean | null>(null);
+  const reduced = useReducedMotion();
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [ringIndex, setRingIndex] = useState(-1);
 
   useEffect(() => {
-    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  }, []);
-
-  useEffect(() => {
-    if (reduced !== false) return;
+    if (reduced) return;
     const lenis = new Lenis({ lerp: 0.1 });
-    function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-    const id = requestAnimationFrame(raf);
+    // Lenis subscribes first so scroll is settled before the corridor,
+    // which subscribes on mount, reads it in the same frame.
+    const offFrame = onFrame((time) => lenis.raf(time));
     lenis.on("scroll", ScrollTrigger.update);
 
     ScrollTrigger.config({ ignoreMobileResize: true });
@@ -133,24 +156,19 @@ export default function Home() {
     const copies = gsap.utils.toArray<HTMLElement>(".stage-copy");
     const copyTriggers = copies.map((el) => {
       const motionType = el.dataset.motion || "rise";
-      const commonTrigger = {
-        trigger: el,
-        start: "top 80%",
-        end: "top 42%",
-        scrub: true,
-      };
+      const commonTrigger = { trigger: el, ...REVEAL_TRIGGER };
 
       if (motionType === "cards") {
         const cards = el.querySelectorAll<HTMLElement>(".motion-card");
         return gsap.fromTo(
           cards,
-          { opacity: 0, y: 34, scale: 0.92 },
+          { opacity: 0, y: RISE, scale: 0.92 },
           {
             opacity: 1,
             y: 0,
             scale: 1,
-            stagger: 0.08,
-            ease: "back.out(1.4)",
+            stagger: STAGGER,
+            ease: EASE.settle,
             scrollTrigger: commonTrigger,
           }
         );
@@ -160,8 +178,8 @@ export default function Home() {
         const left = el.querySelector<HTMLElement>(".motion-left");
         const right = el.querySelector<HTMLElement>(".motion-right");
         const tl = gsap.timeline({ scrollTrigger: commonTrigger });
-        if (left) tl.fromTo(left, { opacity: 0, x: -46 }, { opacity: 1, x: 0, ease: "power3.out" }, 0);
-        if (right) tl.fromTo(right, { opacity: 0, x: 46, scale: 0.92 }, { opacity: 1, x: 0, scale: 1, ease: "power3.out" }, 0.05);
+        if (left) tl.fromTo(left, { opacity: 0, x: -46 }, { opacity: 1, x: 0, ease: EASE.out }, 0);
+        if (right) tl.fromTo(right, { opacity: 0, x: 46, scale: 0.92 }, { opacity: 1, x: 0, scale: 1, ease: EASE.out }, STAGGER);
         return tl;
       }
 
@@ -169,12 +187,12 @@ export default function Home() {
         const tiles = el.querySelectorAll<HTMLElement>(".motion-tile");
         return gsap.fromTo(
           tiles,
-          { opacity: 0, y: 26 },
+          { opacity: 0, y: RISE },
           {
             opacity: 1,
             y: 0,
-            stagger: { each: 0.05, from: "start", grid: "auto" },
-            ease: "power2.out",
+            stagger: { each: STAGGER, from: "start", grid: "auto" },
+            ease: EASE.out,
             scrollTrigger: commonTrigger,
           }
         );
@@ -183,20 +201,20 @@ export default function Home() {
       if (motionType === "center") {
         return gsap.fromTo(
           el,
-          { opacity: 0, y: 30, scale: 0.96 },
-          { opacity: 1, y: 0, scale: 1, ease: "power2.out", scrollTrigger: commonTrigger }
+          { opacity: 0, y: RISE, scale: 0.96 },
+          { opacity: 1, y: 0, scale: 1, ease: EASE.out, scrollTrigger: commonTrigger }
         );
       }
 
       return gsap.fromTo(
         el,
-        { opacity: 0, y: 42 },
-        { opacity: 1, y: 0, ease: "power2.out", scrollTrigger: commonTrigger }
+        { opacity: 0, y: RISE },
+        { opacity: 1, y: 0, ease: EASE.out, scrollTrigger: commonTrigger }
       );
     });
 
     return () => {
-      cancelAnimationFrame(id);
+      offFrame();
       lenis.destroy();
       st.kill();
       copyTriggers.forEach((t) => {
@@ -205,10 +223,6 @@ export default function Home() {
       });
     };
   }, [reduced]);
-
-  if (reduced === null) {
-    return <div className="min-h-[100svh]" style={{ background: "#ffffff" }} />;
-  }
 
   return (
     <div
@@ -236,7 +250,7 @@ export default function Home() {
           </span>
           <a
             href="mailto:nexelitemedia@gmail.com"
-            className="text-xs sm:text-sm font-bold px-4 py-2 sm:py-1.5 rounded-lg transition-all duration-200 hover:-translate-y-px whitespace-nowrap"
+            className="text-xs sm:text-sm font-bold px-4 py-2 sm:py-1.5 rounded-lg transition-all duration-[240ms] hover:-translate-y-px whitespace-nowrap"
             style={{ background: "#7EC8E3", color: "#09121c", boxShadow: "0 0 20px -4px #7EC8E3" }}
           >
             Get in touch
@@ -257,7 +271,7 @@ export default function Home() {
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#7EC8E3" }} />
-              <span className="font-tech tracking-wider whitespace-nowrap">Test transmission</span>
+              <span className="font-tech tracking-wider whitespace-nowrap">40M+ views delivered</span>
             </div>
             <h1
               className="font-disp font-extrabold leading-[0.95] mb-6 sm:mb-7"
@@ -282,15 +296,15 @@ export default function Home() {
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <a
-                href="#work"
-                className="flex items-center justify-center gap-1.5 text-sm font-bold px-7 py-3.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap"
+                href="#proof"
+                className="flex items-center justify-center gap-1.5 text-sm font-bold px-7 py-3.5 rounded-xl transition-all duration-[240ms] hover:-translate-y-0.5 whitespace-nowrap"
                 style={{ background: "#2F5D7C", color: "#ffffff", boxShadow: "0 12px 28px -10px rgba(47,93,124,0.7)" }}
               >
-                See the work <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
+                See the numbers <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
               </a>
               <a
                 href="mailto:nexelitemedia@gmail.com"
-                className="text-sm font-semibold text-center px-7 py-3.5 rounded-xl transition-all duration-150 whitespace-nowrap"
+                className="text-sm font-semibold text-center px-7 py-3.5 rounded-xl transition-all duration-[120ms] whitespace-nowrap"
                 style={{
                   color: "#2F5D7C",
                   background: "rgba(255,255,255,0.6)",
@@ -315,7 +329,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="work" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
+      <section id="channels" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
         <div data-motion="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
           <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
             Signal acquired
@@ -336,6 +350,27 @@ export default function Home() {
           <ChannelGrid onSelect={setSelectedService} />
         </div>
       </section>
+
+      {CASE_STUDIES.length > 0 && (
+        <section id="work" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
+          <div data-motion="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
+            <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
+              Receipts
+            </p>
+            <h2
+              className="font-disp font-extrabold mb-5"
+              style={{ fontSize: "clamp(30px, 7vw, 58px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
+            >
+              The work behind
+              <br />
+              the numbers.
+            </h2>
+          </div>
+          <div data-motion="grid" className="stage-copy w-full max-w-6xl mx-auto">
+            <WorkTeasers />
+          </div>
+        </section>
+      )}
 
       <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
         <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-10 items-center">
@@ -377,12 +412,38 @@ export default function Home() {
         </div>
       </section>
 
-      <Stage motion="cards" align="left" kicker="On the record" title={<>Numbers,<br />not adjectives.</>}>
+      <Stage id="proof" motion="cards" align="left" kicker="On the record" title={<>Numbers,<br />not adjectives.</>}>
         <p className="text-base sm:text-lg leading-relaxed mb-3" style={{ color: "#4d6577" }}>
           We&apos;d rather show you than tell you.
         </p>
         <div className="motion-card">
           <StatsProof />
+        </div>
+      </Stage>
+
+      <Stage motion="grid" align="center" kicker="How it runs" title={<>Five steps.<br />No mystery.</>}>
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 mt-4 w-full">
+          {PROCESS.map((step, i) => (
+            <div
+              key={step.name}
+              className="motion-tile rounded-2xl px-4 py-5 text-left"
+              style={{
+                background: "rgba(255,255,255,0.7)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(126,200,227,0.45)",
+              }}
+            >
+              <p className="font-tech text-[10px] font-bold tracking-[0.22em] mb-2" style={{ color: "#7EC8E3" }}>
+                0{i + 1}
+              </p>
+              <p className="font-disp text-base font-extrabold mb-1" style={{ color: "#2F5D7C" }}>
+                {step.name}
+              </p>
+              <p className="text-xs leading-relaxed" style={{ color: "#4d6577" }}>
+                {step.note}
+              </p>
+            </div>
+          ))}
         </div>
       </Stage>
 
@@ -420,7 +481,7 @@ export default function Home() {
           </p>
           <a
             href="mailto:nexelitemedia@gmail.com"
-            className="inline-flex items-center gap-2 font-bold px-10 py-4 rounded-xl text-sm sm:text-base transition-all duration-200 hover:-translate-y-0.5 whitespace-nowrap"
+            className="inline-flex items-center gap-2 font-bold px-10 py-4 rounded-xl text-sm sm:text-base transition-all duration-[240ms] hover:-translate-y-0.5 whitespace-nowrap"
             style={{ background: "#2F5D7C", color: "#ffffff", boxShadow: "0 16px 36px -12px rgba(47,93,124,0.75)" }}
           >
             nexelitemedia@gmail.com <ArrowUpRight className="w-4 h-4 flex-shrink-0" />

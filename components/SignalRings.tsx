@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { SERVICES } from "@/lib/services";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 /**
  * SignalRings — the new signature visual.
@@ -11,11 +12,7 @@ import { SERVICES } from "@/lib/services";
  */
 export function SignalRings({ activeIndex = -1 }: { activeIndex?: number }) {
   const sweepRef = useRef<SVGGElement>(null);
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  }, []);
+  const reduced = useReducedMotion();
 
   const N = SERVICES.length;
   const size = 480;

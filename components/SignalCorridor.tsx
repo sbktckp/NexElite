@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
 import { SERVICES } from "@/lib/services";
+import { onFrame } from "@/lib/frame";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 /**
  * SignalCorridor, the journey layer.
@@ -76,14 +78,12 @@ export function SignalCorridor() {
   const bootedRef = useRef(false);
   const [status, setStatus] = useState<Status>("booting");
   const [debugLine, setDebugLine] = useState("");
-  const [showDebug, setShowDebug] = useState(false);
-
-  useEffect(() => {
-    setShowDebug(
-      typeof window !== "undefined" &&
-        new URLSearchParams(window.location.search).has("debug")
-    );
-  }, []);
+  const reducedMotion = useReducedMotion();
+  const showDebug = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).has("debug"),
+    () => false
+  );
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -94,9 +94,7 @@ export function SignalCorridor() {
     if (bootedRef.current) return;
     bootedRef.current = true;
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) {
-      setStatus("reduced-motion");
+    if (reducedMotion) {
       bootedRef.current = false;
       return;
     }
@@ -110,6 +108,9 @@ export function SignalCorridor() {
         failIfMajorPerformanceCaveat: false,
       });
     } catch {
+      // Only fires when WebGL is unavailable, so this runs once on a dead
+      // end path and cannot cascade. The rule does not model that.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus("webgl-unavailable");
       bootedRef.current = false;
       return;
@@ -451,28 +452,27 @@ export function SignalCorridor() {
 
     /* ---------- context loss and restore ---------- */
     let contextLost = false;
+    // The shared frame bus owns the loop now, so context loss simply gates
+    // the tick rather than starting and stopping a private rAF.
     function onContextLost(e: Event) {
       e.preventDefault();
       contextLost = true;
-      renderer.setAnimationLoop(null);
     }
     function onContextRestored() {
       contextLost = false;
       fieldMat.uniforms.uPixelRatio.value = DPR;
       fieldMat.needsUpdate = true;
       applySize();
-      renderer.setAnimationLoop(tick);
+      clock.getDelta();
     }
     canvas.addEventListener("webglcontextlost", onContextLost, false);
     canvas.addEventListener("webglcontextrestored", onContextRestored, false);
 
+    // The frame bus already stops the loop when the tab hides. All that is
+    // left here is swallowing the delta that accumulated while away, so the
+    // camera does not jump on return.
     function onVisibility() {
-      if (contextLost) return;
-      if (document.hidden) renderer.setAnimationLoop(null);
-      else {
-        clock.getDelta();
-        renderer.setAnimationLoop(tick);
-      }
+      if (!document.hidden) clock.getDelta();
     }
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -487,6 +487,7 @@ export function SignalCorridor() {
     const THROUGH = 0.018;
 
     function tick() {
+      if (contextLost) return;
       const dt = Math.max(0.001, Math.min(0.05, clock.getDelta()));
       const time = clock.getElapsedTime();
 
@@ -587,10 +588,10 @@ export function SignalCorridor() {
     }
 
     applySize();
-    renderer.setAnimationLoop(tick);
+    const offFrame = onFrame(tick);
 
     return () => {
-      renderer.setAnimationLoop(null);
+      offFrame();
       window.clearTimeout(resizeTimer);
       window.removeEventListener("resize", onResize);
       document.removeEventListener("visibilitychange", onVisibility);
@@ -615,7 +616,7 @@ export function SignalCorridor() {
       if (canvas.parentNode === mount) mount.removeChild(canvas);
       bootedRef.current = false;
     };
-  }, []);
+  }, [reducedMotion]);
 
   return (
     <>
