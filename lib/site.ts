@@ -11,7 +11,7 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://nexelite.in";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://nexelite.media";
 
 export const SITE = {
   name: "NexElite Media",
