@@ -39,6 +39,7 @@ import { CASE_STUDIES } from "@/lib/work";
 import { WorkTeasers } from "@/components/WorkTeasers";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { onFrame } from "@/lib/frame";
+import { registerScroller } from "@/lib/scroll";
 import dynamic from "next/dynamic";
 import { EASE, RISE, STAGGER, REVEAL_TRIGGER } from "@/lib/motion";
 /**
@@ -138,6 +139,9 @@ export default function Home() {
   useEffect(() => {
     if (reduced) return;
     const lenis = new Lenis({ lerp: 0.1 });
+    // Everything that scrolls programmatically goes through Lenis from here,
+    // so nothing ever races it with a native smooth scroll.
+    const unregisterScroller = registerScroller(lenis);
     // Lenis subscribes first so scroll is settled before the corridor,
     // which subscribes on mount, reads it in the same frame.
     const offFrame = onFrame((time) => lenis.raf(time));
@@ -219,6 +223,7 @@ export default function Home() {
 
     return () => {
       offFrame();
+      unregisterScroller();
       lenis.destroy();
       st.kill();
       copyTriggers.forEach((t) => {
