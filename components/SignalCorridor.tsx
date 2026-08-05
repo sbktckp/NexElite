@@ -27,8 +27,10 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
  * itself, for the final collapse). The vertex shader mixes between them, so
  * there is no per frame CPU particle work at all.
  *
- * Resolve is staggered by seed, so the field does not snap all at once. It
- * crystallises unevenly, like a signal locking in.
+ * Crystallisation is local, not global. A particle knows where it lives along
+ * the corridor and resolves when the camera reaches it, so the wavefront
+ * travels with you: structure behind, static far ahead, and the band between
+ * them is where the signal is actively locking in.
  *
  * Scroll velocity drives a camera FOV punch and particle scale, so fast
  * scrolling feels like acceleration rather than scrubbing. That one detail is
@@ -36,8 +38,16 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
  *
  * Art direction
  * This layer sits behind page copy at z index 0, so gates ignite on approach
- * and dissolve at the pass through. Peaking opacity while the ring engulfs
- * the viewport would park a hard hoop behind the text.
+ * and dissolve well before the pass through. Peaking opacity while the ring
+ * engulfs the viewport parks a hard hoop behind the text.
+ *
+ * The corridor itself is a line armature, rails plus hoops, not a wireframed
+ * tube. A wireframed tube draws every triangle hypotenuse, and that diagonal
+ * cross hatch is what made the background read as noise in the wrong sense.
+ *
+ * A radial scrim sits between the canvas and the copy: clear where the
+ * journey is, white where the text is. It is directional, sliding away from
+ * whichever side the current stage puts its copy on.
  *
  * Diagnostics
  * Add ?debug=1 to the URL for status, canvas size, progress, camera depth,
@@ -177,19 +187,68 @@ export function SignalCorridor() {
     const FRAMES = 240;
     const frames = path.computeFrenetFrames(FRAMES, false);
 
-    /* ---------- tunnel wall ----------
-       A faint wireframe tube. Does almost nothing on its own but supplies
-       the parallax that makes forward motion legible on a flat background. */
-    const tubeGeo = new THREE.TubeGeometry(path, 200, 9.5, 9, false);
-    const tubeMat = new THREE.MeshBasicMaterial({
+    /* corridor armature
+       Was a TubeGeometry in wireframe mode. Wireframing a triangulated tube
+       draws every hypotenuse, so 200 by 9 segments produced a dense diagonal
+       cross hatch that moired against the pixel grid and read as static
+       rather than architecture, while costing 3600 triangles of line work.
+
+       This draws the corridor the way a corridor actually reads: a set of
+       longitudinal rails running to the vanishing point, plus evenly spaced
+       hoops for distance rhythm. No diagonals, one draw call, and about a
+       third of the vertices. */
+    const TUBE_R = 9.5;
+    const RAILS = 14;
+    const HOOPS = 56;
+    const RAIL_STEPS = 120;
+    const HOOP_SEGS = 24;
+
+    function ringPoint(t: number, ang: number, radius: number, out: THREE.Vector3) {
+      const c = sampleAt(t, out);
+      const fi = Math.min(FRAMES - 1, Math.floor(t * FRAMES));
+      const n = frames.normals[fi];
+      const b = frames.binormals[fi];
+      const ca = Math.cos(ang);
+      const sa = Math.sin(ang);
+      c.x += (n.x * ca + b.x * sa) * radius;
+      c.y += (n.y * ca + b.y * sa) * radius;
+      c.z += (n.z * ca + b.z * sa) * radius;
+      return c;
+    }
+
+    const armPts: number[] = [];
+    const _a = new THREE.Vector3();
+    const _b = new THREE.Vector3();
+
+    for (let r = 0; r < RAILS; r++) {
+      const ang = (r / RAILS) * Math.PI * 2;
+      for (let i = 0; i < RAIL_STEPS; i++) {
+        ringPoint(i / RAIL_STEPS, ang, TUBE_R, _a);
+        ringPoint((i + 1) / RAIL_STEPS, ang, TUBE_R, _b);
+        armPts.push(_a.x, _a.y, _a.z, _b.x, _b.y, _b.z);
+      }
+    }
+
+    for (let h = 0; h <= HOOPS; h++) {
+      const t = h / HOOPS;
+      for (let k = 0; k < HOOP_SEGS; k++) {
+        ringPoint(t, (k / HOOP_SEGS) * Math.PI * 2, TUBE_R, _a);
+        ringPoint(t, ((k + 1) / HOOP_SEGS) * Math.PI * 2, TUBE_R, _b);
+        armPts.push(_a.x, _a.y, _a.z, _b.x, _b.y, _b.z);
+      }
+    }
+
+    const armGeo = new THREE.BufferGeometry();
+    armGeo.setAttribute("position", new THREE.Float32BufferAttribute(armPts, 3));
+    const armMat = new THREE.LineBasicMaterial({
       color: 0x2f5d7c,
-      wireframe: true,
       transparent: true,
-      opacity: 0.055,
+      opacity: 0.05,
       depthWrite: false,
     });
-    const tube = new THREE.Mesh(tubeGeo, tubeMat);
-    scene.add(tube);
+    const armature = new THREE.LineSegments(armGeo, armMat);
+    armature.frustumCulled = false;
+    scene.add(armature);
 
     /* ---------- progress spine ----------
        The literal trail you have travelled, drawn down the corridor axis
@@ -218,7 +277,7 @@ export function SignalCorridor() {
 
     /* ---------- ring gates ---------- */
     type Gate = {
-      ring: THREE.Mesh;
+      rings: THREE.Mesh[];
       halo: THREE.Mesh;
       ticks: THREE.LineSegments;
       t: number;
@@ -227,22 +286,45 @@ export function SignalCorridor() {
     const gateGroup = new THREE.Group();
     scene.add(gateGroup);
 
-    const ringGeo = new THREE.TorusGeometry(4.6, 0.1, 8, 72);
-    const haloGeo = new THREE.TorusGeometry(4.6, 0.3, 6, 48);
+    /* Per channel gate signatures.
+       Eight identical rings in eight colours meant colour was doing all the
+       identifying work, and colour is the one channel a viewer cannot hold in
+       memory between gates. Each gate now has its own ring count, radii and
+       tick rhythm derived from its index, so a channel is recognisable by
+       shape whether or not you remember its hue.
+
+       Three shared torus geometries cover every radius, so this costs three
+       buffers total rather than one per gate. */
+    const RING_RADII = [4.6, 3.85, 5.35];
+    const ringGeos = RING_RADII.map(
+      (r) => new THREE.TorusGeometry(r, 0.05, 6, 96)
+    );
+    const haloGeo = new THREE.TorusGeometry(4.6, 0.28, 6, 48);
     const _v = new THREE.Vector3();
 
     SERVICES.forEach((svc, i) => {
       const t = (i + 1.2) / (N + 2);
       const pos = sampleAt(t, new THREE.Vector3());
       const tangent = path.getTangentAt(Math.min(0.999, t));
-      const color = new THREE.Color(svc.tone).lerp(new THREE.Color(0x2f5d7c), 0.18);
+      // Pulled further toward slate. On a white page a pale cyan hoop has
+      // almost no contrast, so it read as grey haze rather than a channel.
+      const color = new THREE.Color(svc.tone).lerp(new THREE.Color(0x1d4460), 0.32);
 
-      const ring = new THREE.Mesh(
-        ringGeo,
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4 })
-      );
-      ring.position.copy(pos);
-      ring.lookAt(pos.clone().add(tangent));
+      // One to three concentric rings, cycling by index.
+      const ringCount = 1 + (i % 3);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.18,
+      });
+      const rings: THREE.Mesh[] = [];
+      for (let k = 0; k < ringCount; k++) {
+        const m = new THREE.Mesh(ringGeos[k], ringMat);
+        m.position.copy(pos);
+        m.lookAt(pos.clone().add(tangent));
+        rings.push(m);
+      }
+      const ring = rings[0];
 
       const halo = new THREE.Mesh(
         haloGeo,
@@ -257,12 +339,16 @@ export function SignalCorridor() {
       halo.quaternion.copy(ring.quaternion);
       halo.scale.setScalar(1.06);
 
+      // Tick density and major-tick rhythm are both index derived, so the
+      // outer collar of each gate has a distinct beat.
       const tickPts: number[] = [];
-      const TICKS = 24;
+      const TICKS = 12 + i * 4;
+      const majorEvery = 3 + (i % 3);
       for (let k = 0; k < TICKS; k++) {
         const a = (k / TICKS) * Math.PI * 2;
-        const inner = k % 6 === 0 ? 4.95 : 4.78;
-        const outer = k % 6 === 0 ? 5.6 : 5.15;
+        const major = k % majorEvery === 0;
+        const inner = major ? 4.95 : 4.78;
+        const outer = major ? 5.6 : 5.15;
         tickPts.push(
           Math.cos(a) * inner, Math.sin(a) * inner, 0,
           Math.cos(a) * outer, Math.sin(a) * outer, 0
@@ -277,8 +363,9 @@ export function SignalCorridor() {
       ticks.position.copy(pos);
       ticks.quaternion.copy(ring.quaternion);
 
-      gateGroup.add(ring, halo, ticks);
-      gates.push({ ring, halo, ticks, t });
+      rings.forEach((m) => gateGroup.add(m));
+      gateGroup.add(halo, ticks);
+      gates.push({ rings, halo, ticks, t });
     });
 
     /* ---------- the field: noise into signal ---------- */
@@ -287,6 +374,10 @@ export function SignalCorridor() {
     const aOrder = new Float32Array(COUNT * 3);
     const aCenter = new Float32Array(COUNT * 3);
     const aSeed = new Float32Array(COUNT);
+    // Where along the corridor this particle belongs. Drives local resolve:
+    // a particle crystallises when the camera reaches its station, not when
+    // a global scroll ramp says so.
+    const aT = new Float32Array(COUNT);
 
     const RINGS = 90;
     for (let i = 0; i < COUNT; i++) {
@@ -297,6 +388,7 @@ export function SignalCorridor() {
       // station so the resolved state reads as structure, not a tube.
       const ringIdx = Math.floor((i / COUNT) * RINGS);
       const t = (ringIdx + 0.5) / RINGS;
+      aT[i] = t;
       const center = sampleAt(t, _v.clone());
       const fi = Math.min(FRAMES - 1, Math.floor(t * FRAMES));
       const nrm = frames.normals[fi];
@@ -329,6 +421,7 @@ export function SignalCorridor() {
     fieldGeo.setAttribute("aOrder", new THREE.BufferAttribute(aOrder, 3));
     fieldGeo.setAttribute("aCenter", new THREE.BufferAttribute(aCenter, 3));
     fieldGeo.setAttribute("aSeed", new THREE.BufferAttribute(aSeed, 1));
+    fieldGeo.setAttribute("aT", new THREE.BufferAttribute(aT, 1));
 
     const fieldMat = new THREE.ShaderMaterial({
       transparent: true,
@@ -336,7 +429,12 @@ export function SignalCorridor() {
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: DPR },
-        uResolve: { value: 0 },
+        uProgress: { value: 0 },
+        // Path position of the nearest gate and how lit it currently is, so
+        // the slice of field around a gate ignites on the same frame the
+        // ring does instead of the ring lighting up alone.
+        uGateT: { value: 0 },
+        uIgnite: { value: 0 },
         uCollapse: { value: 0 },
         uSpeed: { value: 0 },
       },
@@ -344,23 +442,49 @@ export function SignalCorridor() {
         attribute vec3 aOrder;
         attribute vec3 aCenter;
         attribute float aSeed;
+        attribute float aT;
         uniform float uTime;
         uniform float uPixelRatio;
-        uniform float uResolve;
+        uniform float uProgress;
+        uniform float uGateT;
+        uniform float uIgnite;
         uniform float uCollapse;
         uniform float uSpeed;
         varying float vResolve;
         varying float vSeed;
         varying float vFog;
+        varying float vPulse;
 
         void main() {
           vSeed = aSeed;
 
-          // Staggered crystallisation: each particle locks in at its own
-          // point in the scroll, so the field resolves unevenly.
-          float r = clamp((uResolve - aSeed * 0.4) / 0.6, 0.0, 1.0);
+          // Local crystallisation.
+          //
+          // This used to be a single global ramp: the whole field resolved on
+          // scroll position regardless of where a particle sat in the
+          // corridor, so arriving at a gate did nothing to the space around
+          // it. The wavefront now travels with the camera. Everything behind
+          // you is structure, everything far ahead is still static, and the
+          // band between the two is where the signal is actively locking in.
+          //
+          // LEAD puts the wavefront slightly ahead of the camera so you fly
+          // into formed structure rather than watching it assemble on your
+          // face. BAND is how long the transition takes in path units.
+          float lead = 0.06;
+          float band = 0.20;
+          float local = clamp((uProgress + lead - aT) / band, 0.0, 1.0);
+
+          // Seed stagger keeps the wavefront ragged rather than a clean
+          // sweeping plane.
+          float r = clamp((local - aSeed * 0.25) / 0.75, 0.0, 1.0);
           r = smoothstep(0.0, 1.0, r);
           vResolve = r;
+
+          // Gate sympathy. Particles sitting in the same slice of corridor as
+          // the active gate swell and warm with it, so passing a channel
+          // ignites its own section of the field.
+          float gd = abs(aT - uGateT);
+          vPulse = uIgnite * (1.0 - smoothstep(0.0, 0.045, gd));
 
           vec3 p = mix(position, aOrder, r);
 
@@ -383,14 +507,22 @@ export function SignalCorridor() {
           vFog = clamp((-mv.z - 20.0) / 105.0, 0.0, 1.0);
           gl_Position = projectionMatrix * mv;
 
-          float sz = 1.1 + aSeed * 2.2 + r * 1.1 + uSpeed * 5.0;
-          gl_PointSize = sz * uPixelRatio * (14.0 / max(-mv.z, 1.0));
+          // Unclamped, this ran from sub-pixel in the distance to fat blobs
+          // up close. Sub-pixel points alias into hard specks, which is why
+          // the far field read as dirt on the screen rather than signal.
+          float sz = 1.0 + aSeed * 1.6 + r * 1.4 + uSpeed * 3.0 + vPulse * 2.2;
+          gl_PointSize = clamp(
+            sz * uPixelRatio * (16.0 / max(-mv.z, 1.0)),
+            1.0 * uPixelRatio,
+            7.0 * uPixelRatio
+          );
         }
       `,
       fragmentShader: `
         varying float vResolve;
         varying float vSeed;
         varying float vFog;
+        varying float vPulse;
 
         void main() {
           vec2 c = gl_PointCoord - 0.5;
@@ -398,7 +530,7 @@ export function SignalCorridor() {
           if (d > 0.5) discard;
 
           // Dead static grey into brand colour as the signal locks in.
-          vec3 noise = vec3(0.62, 0.64, 0.66);
+          vec3 noise = vec3(0.68, 0.71, 0.75);
           vec3 slate = vec3(0.184, 0.365, 0.486);
           vec3 sky   = vec3(0.494, 0.784, 0.890);
           vec3 sand  = vec3(0.851, 0.725, 0.541);
@@ -406,9 +538,14 @@ export function SignalCorridor() {
           vec3 tuned = mix(slate, sky, smoothstep(0.15, 0.85, vSeed));
           tuned = mix(tuned, sand, step(0.9, vSeed) * 0.85);
           vec3 col = mix(noise, tuned, vResolve);
+          // Lift toward sand at the active gate so the ignited slice reads
+          // warm against the surrounding cool field.
+          col = mix(col, sand, vPulse * 0.45);
 
-          float core = 1.0 - smoothstep(0.2, 0.5, d);
-          float a = core * (1.0 - vFog) * (0.3 + vResolve * 0.55);
+          // Softer falloff so a point is a glow rather than a disc with a
+          // visible rim, and unresolved noise sits back further.
+          float core = 1.0 - smoothstep(0.0, 0.5, d);
+          float a = core * (1.0 - vFog) * (0.18 + vResolve * 0.62 + vPulse * 0.3);
           gl_FragColor = vec4(col, a);
         }
       `,
@@ -502,9 +639,12 @@ export function SignalCorridor() {
     const camPos = new THREE.Vector3();
     let frameCount = 0;
 
-    const REACH = 0.1;
-    const PEAK = 0.045;
-    const THROUGH = 0.018;
+    // Widened reach and a much earlier cut out. A gate that is still drawing
+    // at 0.018 from the camera is a hoop the width of the screen sitting on
+    // top of the copy. It now fades out well before it engulfs the view.
+    const REACH = 0.13;
+    const PEAK = 0.06;
+    const THROUGH = 0.032;
 
     function tick() {
       if (contextLost) return;
@@ -527,11 +667,11 @@ export function SignalCorridor() {
       const collapse = Math.max(0, Math.min(1, (s - 0.82) / 0.16));
 
       fieldMat.uniforms.uTime.value = time;
-      fieldMat.uniforms.uResolve.value = resolve;
+      fieldMat.uniforms.uProgress.value = s;
       fieldMat.uniforms.uCollapse.value = collapse * collapse;
       fieldMat.uniforms.uSpeed.value = speed;
 
-      tubeMat.opacity = 0.02 + resolve * 0.06;
+      armMat.opacity = 0.025 + resolve * 0.055;
 
       // Spine reveals in lockstep with the DOM progress rail.
       const revealed = Math.max(2, Math.floor(scrollRef.current * SPINE));
@@ -566,12 +706,20 @@ export function SignalCorridor() {
         const passing = Math.min(1, Math.max(0, dist - THROUGH) / (PEAK - THROUGH));
         const ignite = approach * (dist < PEAK ? passing : 1);
 
-        (g.ring.material as THREE.MeshBasicMaterial).opacity = 0.1 + ignite * 0.55;
-        (g.halo.material as THREE.MeshBasicMaterial).opacity = ignite * ignite * 0.22;
-        (g.ticks.material as THREE.LineBasicMaterial).opacity = 0.06 + ignite * 0.4;
+        // Every ring in a gate shares one material, so this is a single
+        // write regardless of how many concentric rings the channel has.
+        (g.rings[0].material as THREE.MeshBasicMaterial).opacity =
+          0.05 + ignite * 0.5;
+        (g.halo.material as THREE.MeshBasicMaterial).opacity = ignite * ignite * 0.16;
+        (g.ticks.material as THREE.LineBasicMaterial).opacity = 0.03 + ignite * 0.34;
 
         const sc = 1 + ignite * 0.06;
-        g.ring.scale.setScalar(sc);
+        for (let k = 0; k < g.rings.length; k++) {
+          // Inner rings counter-rotate a touch, so an igniting gate reads as
+          // an aperture opening rather than a decal fading up.
+          g.rings[k].scale.setScalar(sc);
+          g.rings[k].rotation.z = time * (k % 2 === 0 ? 0.06 : -0.09) * (0.4 + ignite);
+        }
         g.halo.scale.setScalar(sc * 1.06);
         g.ticks.rotation.z = time * (0.12 + ignite * 0.5);
       }
@@ -597,6 +745,9 @@ export function SignalCorridor() {
       corridorState.speed = speed;
       corridorState.gate = bestGate;
       corridorState.ignite = bestIgnite;
+
+      fieldMat.uniforms.uGateT.value = gates[bestGate].t;
+      fieldMat.uniforms.uIgnite.value = bestIgnite;
 
       renderer.render(scene, camera);
 
@@ -626,16 +777,16 @@ export function SignalCorridor() {
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       if (!isMobile) window.removeEventListener("pointermove", onMove);
-      ringGeo.dispose();
+      ringGeos.forEach((g) => g.dispose());
       haloGeo.dispose();
       gates.forEach((g) => {
-        (g.ring.material as THREE.Material).dispose();
+        (g.rings[0].material as THREE.Material).dispose();
         (g.halo.material as THREE.Material).dispose();
         (g.ticks.material as THREE.Material).dispose();
         g.ticks.geometry.dispose();
       });
-      tubeGeo.dispose();
-      tubeMat.dispose();
+      armGeo.dispose();
+      armMat.dispose();
       spineGeo.dispose();
       spineMat.dispose();
       fieldGeo.dispose();
@@ -656,6 +807,37 @@ export function SignalCorridor() {
           zIndex: 0,
           background:
             "radial-gradient(ellipse 75% 60% at 50% 40%, rgba(126,200,227,0.16) 0%, transparent 68%), #ffffff",
+        }}
+      />
+      {/* Directional legibility scrim.
+          Clear where the corridor is worth looking at, white where the copy
+          is. The first version was symmetric, which meant that on a left
+          aligned stage it spent half its opacity veiling the right hand side
+          where there was nothing to protect, while dimming corridor you
+          actually wanted to see.
+
+          It now slides. app/page.tsx sets --scrim-shift from whichever stage
+          is in view, pushing the clear window away from the copy column. The
+          element is deliberately wider than the viewport so translating it
+          never exposes an unveiled edge, and it moves on transform rather
+          than by re-centring the gradient, because gradient positions do not
+          interpolate and transforms do.
+
+          Sits at z-index 1, under the page content at 2. */}
+      <div
+        className="fixed pointer-events-none scrim"
+        aria-hidden="true"
+        style={{
+          zIndex: 1,
+          top: 0,
+          bottom: 0,
+          left: "-30vw",
+          right: "-30vw",
+          background:
+            "radial-gradient(ellipse 34% 64% at 50% 48%," +
+            " rgba(255,255,255,0) 0%," +
+            " rgba(255,255,255,0.5) 56%," +
+            " rgba(255,255,255,0.88) 100%)",
         }}
       />
       {showDebug && (
