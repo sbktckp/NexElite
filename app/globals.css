@@ -86,26 +86,30 @@ body {
   animation: sheen 7s linear infinite;
 }
 
-/* HUD caption cross fade.
-   Both lines are stacked and always present, so hovering swaps them without
-   changing the height of the block. Toggling the text on a state flag used
-   to reflow the panel and nudge the rail. */
-.hud-line {
-  transition: opacity 240ms ease;
-  margin: 0;
-}
-
-.hud-detail {
+/* HUD detail drawer.
+   Collapsed to zero height at rest and opened on hover. Animating
+   grid-template-rows between 0fr and 1fr expands to the content's natural
+   height without hard coding a pixel value, and the panel is anchored to the
+   bottom of the viewport so it grows upward and shifts nothing above it. */
+.hud-drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 260ms ease, opacity 200ms ease;
   opacity: 0;
 }
 
-@media (hover: hover) {
-  .journey-hud:hover .hud-tagline {
-    opacity: 0;
-  }
+.hud-drawer > * {
+  overflow: hidden;
+  min-height: 0;
+  margin: 0;
+}
 
-  .journey-hud:hover .hud-detail {
+@media (hover: hover) {
+  .journey-hud:hover .hud-drawer,
+  .journey-hud:focus-within .hud-drawer {
+    grid-template-rows: 1fr;
     opacity: 1;
+    padding-top: 8px;
   }
 }
 

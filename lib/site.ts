@@ -16,7 +16,7 @@ export const SITE_URL =
 export const SITE = {
   name: "NexElite Media",
   /** Used as the default page title and in structured data. */
-  title: "NexElite Media — Creative Media Agency",
+  title: "NexElite Media, Creative Media Agency",
   /**
    * Kept to roughly 150 characters so search engines do not truncate it,
    * and written as a claim rather than a list of adjectives.

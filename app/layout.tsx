@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE.title,
-    template: "%s — NexElite Media",
+    template: "%s | NexElite Media",
   },
   description: SITE.description,
   alternates: { canonical: "/" },
