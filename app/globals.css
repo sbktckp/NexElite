@@ -42,7 +42,7 @@ body {
   font-family: var(--font-mono), ui-monospace, monospace;
 }
 
-/* Subtle paper/scan texture — kept far lighter than the old CRT overlay
+/* Subtle paper/scan texture, kept far lighter than the old CRT overlay
    so it reads as depth, not dirt. */
 .tex::before {
   content: "";
@@ -84,6 +84,29 @@ body {
   );
   background-size: 200% 100%;
   animation: sheen 7s linear infinite;
+}
+
+/* HUD caption cross fade.
+   Both lines are stacked and always present, so hovering swaps them without
+   changing the height of the block. Toggling the text on a state flag used
+   to reflow the panel and nudge the rail. */
+.hud-line {
+  transition: opacity 240ms ease;
+  margin: 0;
+}
+
+.hud-detail {
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .journey-hud:hover .hud-tagline {
+    opacity: 0;
+  }
+
+  .journey-hud:hover .hud-detail {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
