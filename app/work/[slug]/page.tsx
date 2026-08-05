@@ -25,10 +25,10 @@ export async function generateMetadata({
   const study = getCaseStudy(slug);
   if (!study) return {};
   return {
-    title: `${study.client} — NexElite Media`,
+    title: `${study.client} | NexElite Media`,
     description: study.summary,
     openGraph: {
-      title: `${study.client} — NexElite Media`,
+      title: `${study.client} | NexElite Media`,
       description: study.summary,
       images: [{ url: study.cover }],
     },

@@ -102,48 +102,46 @@ export function JourneyHUD() {
   return (
     <div
       ref={rootRef}
-      className="journey-hud fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[min(94vw,760px)] group"
+      className="journey-hud fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[min(92vw,520px)]"
       style={{ ["--p" as string]: "0", ["--ig" as string]: "0" }}
     >
       <div
-        className="rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5"
+        className="rounded-2xl px-4 py-2.5"
         style={{
-          background: "rgba(9,18,28,0.74)",
-          backdropFilter: "blur(18px)",
-          border: "1px solid rgba(126,200,227,0.32)",
+          background: "rgba(9,18,28,0.72)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(126,200,227,0.28)",
           boxShadow:
-            "0 0 0 1px rgba(126,200,227,calc(0.12 + var(--ig) * 0.3))," +
-            " 0 18px 50px -14px rgba(47,93,124,0.55)," +
-            ` 0 0 calc(20px + var(--ig) * 40px) -10px ${svc.tone}`,
+            "0 0 0 1px rgba(126,200,227,calc(0.1 + var(--ig) * 0.22))," +
+            " 0 12px 34px -14px rgba(47,93,124,0.5)," +
+            ` 0 0 calc(14px + var(--ig) * 26px) -12px ${svc.tone}`,
         }}
       >
-        <div className="flex items-baseline justify-between gap-3 mb-1.5">
+        {/* Resting state is two rows: a label line and the rail. Everything
+            else that used to sit here, the tagline, the description slot and
+            a separate status row, made the panel tall enough to cover the
+            hero CTAs on a short viewport. The detail now lives in the hover
+            drawer below, which grows upward from a bottom anchored element
+            so nothing above it shifts. */}
+        <div className="flex items-center justify-between gap-3 mb-1.5">
           <span
-            className="text-[13px] sm:text-sm font-semibold truncate"
+            className="text-[12px] sm:text-[13px] font-semibold truncate"
             style={{ color: "#EAF6FF" }}
           >
             {svc.name}
           </span>
           <span
-            className="text-[11px] sm:text-xs shrink-0 tabular-nums"
-            style={{ color: "rgba(234,246,255,0.55)" }}
+            className="font-tech text-[10px] sm:text-[11px] shrink-0 tabular-nums tracking-wider"
+            style={{ color: "rgba(234,246,255,0.5)" }}
           >
-            Stop {gate + 1} of {N}
+            {String(gate + 1).padStart(2, "0")}/{String(N).padStart(2, "0")}
+            <span style={{ color: "rgba(234,246,255,0.28)" }}> · </span>
+            {pct}%
           </span>
         </div>
 
-        {/* Both lines are always in the DOM and cross fade on hover. Swapping
-            the text on a state flag reflowed the block and nudged the rail. */}
         <div
-          className="relative text-[12px] sm:text-[13px] leading-snug mb-2.5"
-          style={{ color: "rgba(234,246,255,0.72)", minHeight: "2.6em" }}
-        >
-          <p className="hud-line hud-tagline">{svc.tagline}</p>
-          <p className="hud-line hud-detail absolute inset-0">{svc.description}</p>
-        </div>
-
-        <div
-          className="flex gap-1 sm:gap-1.5 h-2.5 mb-2"
+          className="flex gap-1 h-1.5"
           role="group"
           aria-label="Jump to a service"
         >
@@ -156,17 +154,17 @@ export function JourneyHUD() {
                 title={s.name}
                 aria-label={`Go to ${s.name}`}
                 aria-current={active ? "step" : undefined}
-                className="relative flex-1 rounded-full overflow-hidden hover:scale-y-150 focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="relative flex-1 rounded-full overflow-hidden hover:scale-y-[2] focus-visible:outline-2 focus-visible:outline-offset-4"
                 style={{
                   background: "rgba(126,200,227,0.16)",
                   outlineColor: s.tone,
                   transition: "transform 200ms ease",
-                  // Continuous, so it tracks ignition at display rate rather
-                  // than stepping every 80ms.
+                  // Continuous, so the active pip tracks ignition at display
+                  // rate rather than stepping every 80ms.
                   ...(active
                     ? {
-                        transform: "scaleY(calc(1 + var(--ig) * 0.6))",
-                        boxShadow: `0 0 calc(6px + var(--ig) * 14px) ${s.tone}`,
+                        transform: "scaleY(calc(1 + var(--ig) * 0.9))",
+                        boxShadow: `0 0 calc(4px + var(--ig) * 10px) ${s.tone}`,
                       }
                     : null),
                 }}
@@ -183,20 +181,16 @@ export function JourneyHUD() {
           })}
         </div>
 
-        <div
-          className="flex items-center justify-between text-[10px] sm:text-[11px]"
-          style={{ color: "rgba(234,246,255,0.42)" }}
-        >
-          <span>
-            {pct < 8
-              ? "All noise so far"
-              : pct < 45
-                ? "Signal starting to form"
-                : pct < 88
-                  ? "Signal locking in"
-                  : "Fully tuned"}
-          </span>
-          <span className="tabular-nums">{pct}% tuned</span>
+        {/* Collapsed to zero height until hover. grid-template-rows animates
+            between 0fr and 1fr, so the drawer opens without hard coding a
+            height that would break on a long description. */}
+        <div className="hud-drawer">
+          <p
+            className="text-[12px] leading-snug"
+            style={{ color: "rgba(234,246,255,0.68)" }}
+          >
+            {svc.description}
+          </p>
         </div>
       </div>
     </div>
