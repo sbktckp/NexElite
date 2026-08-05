@@ -38,6 +38,7 @@ import { SERVICES, type Service } from "@/lib/services";
 import { CASE_STUDIES } from "@/lib/work";
 import { WorkTeasers } from "@/components/WorkTeasers";
 import { GrowthLedger } from "@/components/GrowthLedger";
+import { BrandMarquee } from "@/components/BrandMarquee";
 import { ClientImpact } from "@/components/ClientImpact";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { onFrame } from "@/lib/frame";
@@ -401,6 +402,8 @@ export default function Home() {
         </div>
       </section>
 
+      <BrandMarquee />
+
       <section id="channels" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
         <div data-motion="center" data-side="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
           <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
@@ -444,7 +447,7 @@ export default function Home() {
             </p>
           </div>
           <div className="lg:col-span-7 motion-right">
-            <GrowthLedger />
+            <div className="lift rounded-2xl"><GrowthLedger /></div>
           </div>
         </div>
       </section>
@@ -573,7 +576,7 @@ export default function Home() {
           Cuts land on the beat. Captions arrive on time. Nothing overstays its welcome.
         </p>
         <div
-          className="inline-flex flex-col gap-1 px-6 py-5 rounded-2xl text-left"
+          className="lift inline-flex flex-col gap-1 px-6 py-5 rounded-2xl text-left"
           style={{
             background: "rgba(255,255,255,0.7)",
             backdropFilter: "blur(10px)",
