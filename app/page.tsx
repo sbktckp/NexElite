@@ -97,12 +97,28 @@ function Stage({
    */
   width?: "prose" | "wide";
 }) {
-  const alignCls =
-    align === "center"
-      ? "items-center text-center"
-      : align === "right"
-        ? "items-start text-left sm:items-end sm:text-right sm:ml-auto"
-        : "items-start text-left";
+  /**
+   * Copy sits on a shared twelve column grid rather than being pushed to
+   * whichever edge of a flex row. Two reasons.
+   *
+   * The corridor's vanishing point is dead centre of the viewport, so copy
+   * flushed to the outer edge of the container competed with it instead of
+   * composing against it. On the grid a left stage and a right stage are
+   * exact mirrors, five columns each, and the middle two stay clear for the
+   * 3D focal point.
+   *
+   * Text stays left aligned in a right hand column. Right aligned body copy
+   * gives a ragged left edge, which is measurably harder to read, and the
+   * column position already carries the asymmetry.
+   */
+  const colCls =
+    width === "wide"
+      ? "col-span-12"
+      : align === "center"
+        ? "col-span-12 lg:col-span-8 lg:col-start-3 text-center"
+        : align === "right"
+          ? "col-span-12 md:col-span-6 md:col-start-7 lg:col-span-5 lg:col-start-8 text-left"
+          : "col-span-12 md:col-span-6 lg:col-span-5 text-left";
   return (
     <section
       id={id}
@@ -112,9 +128,10 @@ function Stage({
       <div
         ref={innerRef}
         data-motion={motion}
-        className={`stage-copy max-w-6xl mx-auto w-full flex flex-col ${alignCls}`}
+        data-side={width === "wide" ? "center" : align}
+        className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-12 gap-x-6"
       >
-        <div className={width === "wide" ? "w-full max-w-5xl" : "max-w-md w-full"}>
+        <div className={colCls}>
           {kicker && (
             <p
               className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4"
@@ -232,11 +249,44 @@ export default function Home() {
       );
     });
 
+    /**
+     * Drives the corridor's legibility scrim.
+     *
+     * The scrim is clear in the middle and white at the edges, so a symmetric
+     * one veils both sides equally even though the copy only ever occupies
+     * one. Each stage declares which side its copy sits on, and the clear
+     * window slides the other way as that stage comes into view.
+     *
+     * Written as a CSS variable rather than React state because it changes on
+     * scroll and must never trigger a render. The scrim transitions the
+     * resulting transform itself, so this is a single property write.
+     */
+    const SHIFT = { left: "15vw", right: "-15vw", center: "0px" } as const;
+    function applySide(el: HTMLElement) {
+      const side = (el.dataset.side || "center") as keyof typeof SHIFT;
+      document.documentElement.style.setProperty(
+        "--scrim-shift",
+        SHIFT[side] ?? "0px"
+      );
+    }
+
+    const sideTriggers = copies.map((el) =>
+      ScrollTrigger.create({
+        trigger: el,
+        start: "top 65%",
+        end: "bottom 35%",
+        onEnter: () => applySide(el),
+        onEnterBack: () => applySide(el),
+      })
+    );
+
     return () => {
       offFrame();
       unregisterScroller();
       lenis.destroy();
       st.kill();
+      sideTriggers.forEach((t) => t.kill());
+      document.documentElement.style.removeProperty("--scrim-shift");
       copyTriggers.forEach((t) => {
         t.scrollTrigger?.kill();
         t.kill();
@@ -279,7 +329,7 @@ export default function Home() {
       </header>
 
       <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 pt-28 sm:pt-32" style={{ zIndex: 2 }}>
-        <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+        <div data-motion="split" data-side="left" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div className="max-w-xl motion-left">
             <div
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium mb-7 sm:mb-9"
@@ -350,7 +400,7 @@ export default function Home() {
       </section>
 
       <section id="channels" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
-        <div data-motion="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
+        <div data-motion="center" data-side="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
           <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
             Signal acquired
           </p>
@@ -366,14 +416,14 @@ export default function Home() {
             Tap a channel, or use the bar at the bottom, to see what it delivers.
           </p>
         </div>
-        <div data-motion="grid" className="stage-copy w-full">
+        <div data-motion="grid" data-side="center" className="stage-copy w-full">
           <ChannelGrid onSelect={setSelectedService} />
         </div>
       </section>
 
       {CASE_STUDIES.length > 0 && (
         <section id="work" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
-          <div data-motion="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
+          <div data-motion="center" data-side="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
             <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
               Receipts
             </p>
@@ -386,14 +436,14 @@ export default function Home() {
               the numbers.
             </h2>
           </div>
-          <div data-motion="grid" className="stage-copy w-full max-w-6xl mx-auto">
+          <div data-motion="grid" data-side="center" className="stage-copy w-full max-w-6xl mx-auto">
             <WorkTeasers />
           </div>
         </section>
       )}
 
       <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
-        <div data-motion="split" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-10 items-center">
+        <div data-motion="split" data-side="left" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-10 items-center">
           <div className="max-w-md order-2 lg:order-1 motion-left">
             <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
               In focus
@@ -489,7 +539,7 @@ export default function Home() {
         className="relative min-h-[100svh] flex items-center justify-center px-5 sm:px-6 text-center"
         style={{ zIndex: 2 }}
       >
-        <div data-motion="center" className="stage-copy max-w-xl mx-auto">
+        <div data-motion="center" data-side="center" className="stage-copy max-w-xl mx-auto">
           <h2
             className="font-disp font-extrabold mb-5"
             style={{ fontSize: "clamp(34px, 8vw, 62px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
