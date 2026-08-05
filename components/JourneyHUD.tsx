@@ -3,73 +3,118 @@
 import { useEffect, useRef, useState } from "react";
 import { SERVICES } from "@/lib/services";
 import { corridorState, gateFraction } from "@/components/SignalCorridor";
+import { onFrame } from "@/lib/frame";
+import { scrollFraction, scrollToFraction } from "@/lib/scroll";
 
 /**
  * JourneyHUD
  *
- * The progress bar and the 3D journey are the same instrument here.
- * The corridor writes its live state every frame; this samples that state
- * on a throttled loop and renders the readable half of it.
+ * The progress bar and the 3D journey are the same instrument. The corridor
+ * writes its live state every frame and this renders the readable half of it,
+ * so the ring igniting in 3D, the rail segment brightening and the caption
+ * changing all fire as one event.
  *
- * Three things stay locked together: the ring igniting in 3D, the rail
- * segment brightening, and the caption changing. They share one clock, so
- * passing a gate reads as a single event rather than three components
- * reacting separately.
+ * ── Why this reads smooth now ─────────────────────────────────────────────
+ * It used to run its own requestAnimationFrame loop, which is the exact
+ * two clock problem lib/frame.ts exists to prevent: the HUD sampled state
+ * from a frame the corridor had not written yet, so the glow lagged the
+ * ring by a frame under load.
  *
- * Sampling runs at roughly 12fps via requestAnimationFrame with a time
- * gate. Reading corridorState 60 times a second into React state would
- * re-render the page on every frame for no visible gain.
+ * It also pushed every continuous value through React state at 12fps, so
+ * the rail glow and the segment fills stepped in visible 80ms increments
+ * instead of gliding.
+ *
+ * Split by rate of change. Continuous values, progress and ignition, are
+ * written to CSS custom properties on the container every frame and consumed
+ * by calc() in the styles below, so they move at display rate and cost no
+ * renders at all. Discrete values, which gate you are at and the rounded
+ * percentage, still use state but only set when they actually change.
+ *
+ * Under reduced motion or when WebGL is unavailable the corridor never
+ * boots, so corridorState stays frozen at zero. The fallback below reads
+ * document scroll directly in that case, which is why the rail still works
+ * with the journey switched off.
  */
 
 const SAMPLE_MS = 80;
 
 export function JourneyHUD() {
   const N = SERVICES.length;
+  const rootRef = useRef<HTMLDivElement>(null);
   const [gate, setGate] = useState(0);
-  const [ignite, setIgnite] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [lock, setLock] = useState(0);
-  const [open, setOpen] = useState(false);
-  const rafRef = useRef(0);
+  const [pct, setPct] = useState(0);
+
+  // Mirrors of the state above, so the frame loop can compare without
+  // closing over stale values or re-subscribing on every change.
+  const gateRef = useRef(0);
+  const pctRef = useRef(0);
   const lastRef = useRef(0);
 
   useEffect(() => {
-    function loop(now: number) {
-      rafRef.current = requestAnimationFrame(loop);
+    return onFrame((now) => {
+      const root = rootRef.current;
+      if (!root) return;
+
+      let progress: number;
+      let ignite: number;
+      let lock: number;
+      let nextGate: number;
+
+      if (corridorState.live) {
+        progress = corridorState.progress;
+        ignite = corridorState.ignite;
+        lock = corridorState.resolve;
+        nextGate = corridorState.gate;
+      } else {
+        // No journey rendering. Derive everything from the page itself so
+        // the rail is still an honest progress indicator.
+        progress = scrollFraction();
+        lock = progress;
+        const scaled = progress * N;
+        nextGate = Math.min(N - 1, Math.floor(scaled));
+        // Peaks at the centre of each segment, so the active pip still
+        // breathes as you pass through it.
+        ignite = 1 - Math.abs((scaled % 1) - 0.5) * 2;
+      }
+
+      // Continuous, every frame, zero renders.
+      root.style.setProperty("--p", progress.toFixed(4));
+      root.style.setProperty("--ig", ignite.toFixed(3));
+
+      // Discrete, throttled, and only when the value actually moved.
       if (now - lastRef.current < SAMPLE_MS) return;
       lastRef.current = now;
-      setGate(corridorState.gate);
-      setIgnite(corridorState.ignite);
-      setProgress(corridorState.progress);
-      setLock(corridorState.resolve);
-    }
-    rafRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, []);
 
-  function jumpTo(i: number) {
-    const doc = document.scrollingElement || document.documentElement;
-    const max = doc.scrollHeight - doc.clientHeight;
-    const frac = Math.min(0.995, gateFraction(i, N));
-    window.scrollTo({ top: frac * max, behavior: "smooth" });
-  }
+      if (nextGate !== gateRef.current) {
+        gateRef.current = nextGate;
+        setGate(nextGate);
+      }
+      const nextPct = Math.round(lock * 100);
+      if (nextPct !== pctRef.current) {
+        pctRef.current = nextPct;
+        setPct(nextPct);
+      }
+    });
+  }, [N]);
 
   const svc = SERVICES[gate];
-  const pct = Math.round(lock * 100);
 
   return (
     <div
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[min(94vw,760px)]"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      ref={rootRef}
+      className="journey-hud fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[min(94vw,760px)] group"
+      style={{ ["--p" as string]: "0", ["--ig" as string]: "0" }}
     >
       <div
-        className="rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 transition-shadow duration-300"
+        className="rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5"
         style={{
           background: "rgba(9,18,28,0.74)",
           backdropFilter: "blur(18px)",
           border: "1px solid rgba(126,200,227,0.32)",
-          boxShadow: `0 0 0 1px rgba(126,200,227,${0.12 + ignite * 0.3}), 0 18px 50px -14px rgba(47,93,124,0.55), 0 0 ${20 + ignite * 40}px -10px ${svc.tone}`,
+          boxShadow:
+            "0 0 0 1px rgba(126,200,227,calc(0.12 + var(--ig) * 0.3))," +
+            " 0 18px 50px -14px rgba(47,93,124,0.55)," +
+            ` 0 0 calc(20px + var(--ig) * 40px) -10px ${svc.tone}`,
         }}
       >
         <div className="flex items-baseline justify-between gap-3 mb-1.5">
@@ -87,12 +132,15 @@ export function JourneyHUD() {
           </span>
         </div>
 
-        <p
-          className="text-[12px] sm:text-[13px] leading-snug mb-2.5"
+        {/* Both lines are always in the DOM and cross fade on hover. Swapping
+            the text on a state flag reflowed the block and nudged the rail. */}
+        <div
+          className="relative text-[12px] sm:text-[13px] leading-snug mb-2.5"
           style={{ color: "rgba(234,246,255,0.72)", minHeight: "2.6em" }}
         >
-          {open ? svc.description : svc.tagline}
-        </p>
+          <p className="hud-line hud-tagline">{svc.tagline}</p>
+          <p className="hud-line hud-detail absolute inset-0">{svc.description}</p>
+        </div>
 
         <div
           className="flex gap-1 sm:gap-1.5 h-2.5 mb-2"
@@ -100,25 +148,33 @@ export function JourneyHUD() {
           aria-label="Jump to a service"
         >
           {SERVICES.map((s, i) => {
-            const fill = Math.max(0, Math.min(1, progress * N - i));
             const active = i === gate;
             return (
               <button
                 key={s.id}
-                onClick={() => jumpTo(i)}
+                onClick={() => scrollToFraction(Math.min(0.995, gateFraction(i, N)))}
                 title={s.name}
                 aria-label={`Go to ${s.name}`}
-                className="relative flex-1 rounded-full overflow-hidden transition-transform duration-200 hover:scale-y-150 focus:outline-none"
+                aria-current={active ? "step" : undefined}
+                className="relative flex-1 rounded-full overflow-hidden hover:scale-y-150 focus-visible:outline-2 focus-visible:outline-offset-2"
                 style={{
                   background: "rgba(126,200,227,0.16)",
-                  transform: active ? `scaleY(${1 + ignite * 0.6})` : undefined,
-                  boxShadow: active ? `0 0 ${6 + ignite * 14}px ${s.tone}` : "none",
+                  outlineColor: s.tone,
+                  transition: "transform 200ms ease",
+                  // Continuous, so it tracks ignition at display rate rather
+                  // than stepping every 80ms.
+                  ...(active
+                    ? {
+                        transform: "scaleY(calc(1 + var(--ig) * 0.6))",
+                        boxShadow: `0 0 calc(6px + var(--ig) * 14px) ${s.tone}`,
+                      }
+                    : null),
                 }}
               >
                 <div
                   className="absolute inset-y-0 left-0"
                   style={{
-                    width: `${fill * 100}%`,
+                    width: `clamp(0%, calc(var(--p) * ${N * 100}% - ${i * 100}%), 100%)`,
                     background: `linear-gradient(90deg, ${s.tone}, #D9B98A)`,
                   }}
                 />
