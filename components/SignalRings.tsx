@@ -5,7 +5,7 @@ import { SERVICES } from "@/lib/services";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 /**
- * SignalRings — the new signature visual.
+ * SignalRings, the new signature visual.
  * Concentric SVG rings with a rotating sweep, one ring-arc per service.
  * Deliberately NOT a particle system: real vector paths, real DOM nodes,
  * so it can be described to assistive tech and works with zero JS motion.
