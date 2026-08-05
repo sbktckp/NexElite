@@ -123,6 +123,87 @@ body {
   will-change: transform;
 }
 
+/* ── Finish system ─────────────────────────────────────────────────────────
+   One hover language for every card on the page, so the process tiles, the
+   impact cards, and the ledger all answer the cursor the same way: a small
+   rise, a brighter edge, a deeper shadow. Uniformity is what reads as
+   premium; five different hover behaviours read as five components bolted
+   together. transform and box-shadow only, so it never triggers layout. */
+.motion-tile,
+.lift {
+  transition:
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 340ms ease;
+}
+
+@media (hover: hover) {
+  .motion-tile:hover,
+  .lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 48px -20px rgba(47, 93, 124, 0.45);
+    border-color: rgba(126, 200, 227, 0.75);
+  }
+}
+
+/* Press state for every real button and link styled as one. The 0.98 dip
+   is the tactile half of the hover rise.
+
+   The journey rail is excluded: its segments carry an inline scaleY driven
+   by the corridor's ignition value every frame, and a blanket active
+   transform would fight it. */
+a:active,
+button:active:not(.journey-hud button) {
+  transform: scale(0.98);
+}
+
+/* Focus that matches the brand instead of the browser default. */
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Marquee ───────────────────────────────────────────────────────────────
+   The track holds its sequence twice and translates by exactly half its own
+   width, which is the whole trick of a seamless loop. Duration is tuned per
+   row in the keyframe distance, direction by the reverse class. */
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  animation: marquee-scroll 36s linear infinite;
+}
+
+.marquee-track.marquee-reverse {
+  animation-direction: reverse;
+  animation-duration: 44s;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* ── Ledger shimmer ────────────────────────────────────────────────────────
+   A slow light pass along the filled growth bars, so a settled ledger still
+   reads as live instrumentation rather than a screenshot. Runs on the
+   ::after of the fill, background-position only. */
+.ledger-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  animation: sheen 4.5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
