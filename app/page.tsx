@@ -40,6 +40,7 @@ import { WorkTeasers } from "@/components/WorkTeasers";
 import { GrowthLedger } from "@/components/GrowthLedger";
 import { BrandMarquee } from "@/components/BrandMarquee";
 import { ClientImpact } from "@/components/ClientImpact";
+import { CutCadence } from "@/components/CutCadence";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { onFrame } from "@/lib/frame";
 import { registerScroller } from "@/lib/scroll";
@@ -78,6 +79,7 @@ function Stage({
   kicker,
   title,
   children,
+  aside,
   innerRef,
   motion = "rise",
   width = "prose",
@@ -86,6 +88,15 @@ function Stage({
   kicker?: string;
   title: React.ReactNode;
   children?: React.ReactNode;
+  /**
+   * Content for the columns the copy does not occupy.
+   *
+   * Putting copy in five of twelve columns left the other seven genuinely
+   * empty, which reads as an unfinished layout rather than as restraint.
+   * A stage either fills the counter columns with something worth looking
+   * at or it should not be a two column stage at all.
+   */
+  aside?: React.ReactNode;
   innerRef?: React.Ref<HTMLDivElement>;
   motion?: string;
   id?: string;
@@ -122,6 +133,14 @@ function Stage({
         : align === "right"
           ? "col-span-12 md:col-span-6 md:col-start-7 lg:col-span-5 lg:col-start-8 text-left"
           : "col-span-12 md:col-span-6 lg:col-span-5 text-left";
+
+  // The aside takes the mirror of the copy column, with a column of gutter
+  // between them so the two never collide at the middle.
+  const asideCls =
+    align === "right"
+      ? "col-span-12 lg:col-span-6 lg:col-start-1 lg:row-start-1 mt-10 lg:mt-0"
+      : "col-span-12 lg:col-span-6 lg:col-start-7 mt-10 lg:mt-0";
+
   return (
     <section
       id={id}
@@ -132,7 +151,7 @@ function Stage({
         ref={innerRef}
         data-motion={motion}
         data-side={width === "wide" ? "center" : align}
-        className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-12 gap-x-6"
+        className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-12 gap-x-6 items-center"
       >
         <div className={colCls}>
           {kicker && (
@@ -156,6 +175,7 @@ function Stage({
           </h2>
           {children}
         </div>
+        {aside && <div className={`${asideCls} motion-right`}>{aside}</div>}
       </div>
     </section>
   );
@@ -536,12 +556,19 @@ export default function Home() {
         </div>
       </section>
 
-      <Stage id="proof" motion="cards" align="left" kicker="On the record" title={<>Numbers,<br />not adjectives.</>}>
-        <p className="text-base sm:text-lg leading-relaxed mb-3" style={{ color: "#4d6577" }}>
-          We&apos;d rather show you than tell you.
-        </p>
-        <div className="motion-card">
-          <StatsProof />
+      <Stage
+        id="proof"
+        motion="split"
+        align="left"
+        kicker="On the record"
+        title={<>Numbers,<br />not adjectives.</>}
+        aside={<StatsProof stacked />}
+      >
+        <div className="motion-left">
+          <p className="text-base sm:text-lg leading-relaxed" style={{ color: "#4d6577" }}>
+            We&apos;d rather show you than tell you. Every figure here is
+            counted, not estimated, and we will walk you through any of them.
+          </p>
         </div>
       </Stage>
 
@@ -571,12 +598,18 @@ export default function Home() {
         </div>
       </Stage>
 
-      <Stage motion="rise" align="right" kicker="Found the rhythm" title={<>Paced for attention.<br />Built to retain.</>}>
-        <p className="text-base sm:text-lg leading-relaxed mb-7" style={{ color: "#4d6577" }}>
+      <Stage
+        motion="split"
+        align="right"
+        kicker="Found the rhythm"
+        title={<>Paced for attention.<br />Built to retain.</>}
+        aside={<CutCadence />}
+      >
+        <p className="text-base sm:text-lg leading-relaxed mb-7 motion-left" style={{ color: "#4d6577" }}>
           Cuts land on the beat. Captions arrive on time. Nothing overstays its welcome.
         </p>
         <div
-          className="lift inline-flex flex-col gap-1 px-6 py-5 rounded-2xl text-left"
+          className="lift motion-left inline-flex flex-col gap-1 px-6 py-5 rounded-2xl text-left"
           style={{
             background: "rgba(255,255,255,0.7)",
             backdropFilter: "blur(10px)",
