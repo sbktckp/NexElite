@@ -89,7 +89,7 @@ function Row({
           style={{ left: `${fromPct}%`, background: "rgba(47,93,124,0.45)" }}
         />
         <div
-          className="absolute inset-y-0 left-0 rounded-full"
+          className="ledger-fill absolute inset-y-0 left-0 rounded-full overflow-hidden"
           style={{
             width: active ? `${toPct}%` : `${fromPct}%`,
             background: "linear-gradient(90deg, #2F5D7C, #7EC8E3 70%, #D9B98A)",
