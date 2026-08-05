@@ -77,6 +77,7 @@ function Stage({
   children,
   innerRef,
   motion = "rise",
+  width = "prose",
 }: {
   align?: "left" | "right" | "center";
   kicker?: string;
@@ -85,6 +86,16 @@ function Stage({
   innerRef?: React.Ref<HTMLDivElement>;
   motion?: string;
   id?: string;
+  /**
+   * Body measure. "prose" keeps text at a readable line length, which is
+   * right for every stage that is a paragraph. "wide" releases that cap for
+   * stages whose body is a multi column layout rather than prose.
+   *
+   * The process beat is five columns and was inheriting the prose cap, so
+   * five cards were being squeezed into 448px and every line broke after a
+   * single word.
+   */
+  width?: "prose" | "wide";
 }) {
   const alignCls =
     align === "center"
@@ -103,7 +114,7 @@ function Stage({
         data-motion={motion}
         className={`stage-copy max-w-6xl mx-auto w-full flex flex-col ${alignCls}`}
       >
-        <div className="max-w-md w-full">
+        <div className={width === "wide" ? "w-full max-w-5xl" : "max-w-md w-full"}>
           {kicker && (
             <p
               className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4"
@@ -430,8 +441,8 @@ export default function Home() {
         </div>
       </Stage>
 
-      <Stage motion="grid" align="center" kicker="How it runs" title={<>Five steps.<br />No mystery.</>}>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 mt-4 w-full">
+      <Stage motion="grid" align="center" width="wide" kicker="How it runs" title={<>Five steps.<br />No mystery.</>}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-4 w-full">
           {PROCESS.map((step, i) => (
             <div
               key={step.name}
