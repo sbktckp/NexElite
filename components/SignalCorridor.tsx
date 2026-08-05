@@ -53,6 +53,11 @@ export const corridorProgress = { value: 0, live: false };
  * The HUD samples it on its own throttled loop.
  */
 export const corridorState = {
+  /** True only while the WebGL journey is actually rendering frames. The
+      HUD reads this to decide whether to trust the values below or fall
+      back to plain document scroll, which is what happens under reduced
+      motion or when WebGL is unavailable. */
+  live: false,
   progress: 0,
   resolve: 0,
   collapse: 0,
@@ -477,6 +482,21 @@ export function SignalCorridor() {
     document.addEventListener("visibilitychange", onVisibility);
 
     /* ---------- loop ---------- */
+
+    /**
+     * Frame rate independent damping.
+     *
+     * `x += (target - x) * k` moves a fixed fraction of the remaining
+     * distance per frame, so on a 120Hz panel it converges twice as fast as
+     * on 60Hz and on a loaded 30fps frame it crawls. The camera literally
+     * had a different feel per display. This converts the per frame
+     * coefficient into a per second one, so the curve is identical at any
+     * refresh rate.
+     */
+    function damp(current: number, target: number, k: number, dt: number) {
+      return current + (target - current) * (1 - Math.pow(1 - k, dt * 60));
+    }
+
     const clock = new THREE.Clock();
     const lookTarget = new THREE.Vector3();
     const camPos = new THREE.Vector3();
@@ -492,13 +512,13 @@ export function SignalCorridor() {
       const time = clock.getElapsedTime();
 
       const target = readProgress();
-      scrollRef.current += (target - scrollRef.current) * 0.075;
+      scrollRef.current = damp(scrollRef.current, target, 0.075, dt);
       const s = Math.max(0, Math.min(0.985, scrollRef.current * 0.92));
 
       // Scroll velocity into acceleration cues. Smoothed hard, because raw
       // per frame delta is far too spiky to drive optics with.
       const raw = Math.abs(scrollRef.current - scrollRef.prev) / dt;
-      speed += (Math.min(1, raw * 1.6) - speed) * 0.12;
+      speed = damp(speed, Math.min(1, raw * 1.6), 0.12, dt);
       scrollRef.prev = scrollRef.current;
 
       // Resolve tracks progress slightly ahead of the camera so structure
@@ -518,8 +538,8 @@ export function SignalCorridor() {
       spineGeo.setDrawRange(0, revealed);
       spineMat.opacity = 0.28 + speed * 0.4;
 
-      ptr.x += (ptr.tx - ptr.x) * 0.05;
-      ptr.y += (ptr.ty - ptr.y) * 0.05;
+      ptr.x = damp(ptr.x, ptr.tx, 0.05, dt);
+      ptr.y = damp(ptr.y, ptr.ty, 0.05, dt);
 
       sampleAt(s, camPos);
       camera.position.set(
@@ -535,7 +555,7 @@ export function SignalCorridor() {
       // FOV punch on fast scroll, the cheapest convincing sense of speed.
       const wantFov = BASE_FOV + speed * 11;
       if (Math.abs(camera.fov - wantFov) > 0.01) {
-        camera.fov += (wantFov - camera.fov) * 0.15;
+        camera.fov = damp(camera.fov, wantFov, 0.15, dt);
         camera.updateProjectionMatrix();
       }
 
@@ -568,7 +588,10 @@ export function SignalCorridor() {
           bestGate = i;
         }
       }
-      corridorState.progress = target;
+      // The eased value, not the raw scroll target. The rail and the camera
+      // are meant to be the same instrument, so the rail follows where the
+      // camera actually is rather than where it is heading.
+      corridorState.progress = scrollRef.current;
       corridorState.resolve = resolve;
       corridorState.collapse = collapse;
       corridorState.speed = speed;
@@ -578,7 +601,10 @@ export function SignalCorridor() {
       renderer.render(scene, camera);
 
       frameCount++;
-      if (frameCount % 15 === 0) {
+      // Gated. This used to run unconditionally, so the page took a React
+      // state update four times a second on every visit whether or not
+      // anyone was looking at the readout.
+      if (showDebug && frameCount % 15 === 0) {
         setDebugLine(
           `${canvas.width}x${canvas.height} p=${target.toFixed(3)} ` +
             `z=${camera.position.z.toFixed(1)} res=${resolve.toFixed(2)} ` +
@@ -588,9 +614,11 @@ export function SignalCorridor() {
     }
 
     applySize();
+    corridorState.live = true;
     const offFrame = onFrame(tick);
 
     return () => {
+      corridorState.live = false;
       offFrame();
       window.clearTimeout(resizeTimer);
       window.removeEventListener("resize", onResize);
@@ -616,7 +644,7 @@ export function SignalCorridor() {
       if (canvas.parentNode === mount) mount.removeChild(canvas);
       bootedRef.current = false;
     };
-  }, [reducedMotion]);
+  }, [reducedMotion, showDebug]);
 
   return (
     <>
