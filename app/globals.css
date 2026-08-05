@@ -113,6 +113,16 @@ body {
   }
 }
 
+/* Directional scrim.
+   app/page.tsx sets --scrim-shift on the root as stages come into view. The
+   transform is what animates, not the gradient, because gradient colour stop
+   positions do not interpolate between values. */
+.scrim {
+  transform: translateX(var(--scrim-shift, 0px));
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
