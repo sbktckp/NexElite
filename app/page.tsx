@@ -37,6 +37,8 @@ import { SignalRings } from "@/components/SignalRings";
 import { SERVICES, type Service } from "@/lib/services";
 import { CASE_STUDIES } from "@/lib/work";
 import { WorkTeasers } from "@/components/WorkTeasers";
+import { GrowthLedger } from "@/components/GrowthLedger";
+import { ClientImpact } from "@/components/ClientImpact";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { onFrame } from "@/lib/frame";
 import { registerScroller } from "@/lib/scroll";
@@ -418,6 +420,55 @@ export default function Home() {
         </div>
         <div data-motion="grid" data-side="center" className="stage-copy w-full">
           <ChannelGrid onSelect={setSelectedService} />
+        </div>
+      </section>
+
+      {/* Creator growth: the three real stories, one shared honest scale. */}
+      <section id="growth" className="relative min-h-[100svh] flex items-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
+        <div data-motion="split" data-side="left" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          <div className="max-w-md lg:col-span-5 motion-left">
+            <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
+              Creators, tuned
+            </p>
+            <h2
+              className="font-disp font-extrabold mb-5"
+              style={{ fontSize: "clamp(30px, 7vw, 54px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
+            >
+              We don&apos;t promise reach.
+              <br />
+              We log it.
+            </h2>
+            <p className="text-base sm:text-lg leading-relaxed" style={{ color: "#4d6577" }}>
+              Three creators, three starting points, one method. Every bar below
+              is on the same scale, so the distances are real.
+            </p>
+          </div>
+          <div className="lg:col-span-7 motion-right">
+            <GrowthLedger />
+          </div>
+        </div>
+      </section>
+
+      {/* Client impact: the five real engagements. */}
+      <section id="impact" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
+        <div data-motion="center" data-side="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-14">
+          <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
+            Our impact
+          </p>
+          <h2
+            className="font-disp font-extrabold mb-5"
+            style={{ fontSize: "clamp(30px, 7vw, 58px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
+          >
+            Brands we&apos;ve
+            <br />
+            tuned to signal.
+          </h2>
+          <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "#4d6577" }}>
+            Skincare, healthcare, and education. Different channels, same method.
+          </p>
+        </div>
+        <div data-motion="grid" data-side="center" className="stage-copy w-full max-w-6xl mx-auto">
+          <ClientImpact />
         </div>
       </section>
 
