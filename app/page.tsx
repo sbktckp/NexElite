@@ -3,22 +3,21 @@
 /* ──────────────────────────────────────────────────────────────────────────
    NexElite Media, landing page
 
-   Signature visual: SignalCorridor, a Three.js scroll journey where the
-   camera flies along a spline through a field of static that resolves into
-   structure. Nothing morphs into a logo. The transformation is noise into
-   signal, which is what the headline promises.
+   Signature visual: GlassField, a drifting field of coloured light behind
+   every surface on the page, with the surfaces themselves rendered as
+   glass. The transformation is still noise into signal, now told in the
+   material rather than in a 3D scene: the field is diffuse, the panels
+   that sit on it are sharp and structured.
 
-   Progress: JourneyHUD, fused with the corridor. It reads the same live
-   state the renderer writes, so the rail, the caption, and the ring in 3D
-   all move on one clock.
+   The Three.js corridor that used to live here is gone. It carried roughly
+   700kb for one effect, and it fought the copy for the centre of the
+   viewport at every stage. The glass reads on a mid range phone, which the
+   corridor never really did.
+
+   Progress: JourneyHUD, driven by document scroll.
 
    Journey animations: per stage GSAP choreography (split, grid, cards,
    center).
-
-   The corridor reads document scroll itself, in frame. It is not driven
-   from here. Pushing progress in from the ScrollTrigger below meant a bad
-   end measurement would silently park the camera at zero while the scene
-   still rendered.
    ────────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from "react";
@@ -31,6 +30,7 @@ import { StatsProof } from "@/components/StatsProof";
 import { StickyCTA } from "@/components/StickyCTA";
 import { ChannelGrid } from "@/components/ChannelGrid";
 import { JourneyHUD } from "@/components/JourneyHUD";
+import { GlassField } from "@/components/GlassField";
 import { ServicePanel } from "@/components/ServicePanel";
 import { SignalRings } from "@/components/SignalRings";
 
@@ -44,23 +44,7 @@ import { CutCadence } from "@/components/CutCadence";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { onFrame } from "@/lib/frame";
 import { registerScroller } from "@/lib/scroll";
-import dynamic from "next/dynamic";
 import { EASE, RISE, STAGGER, REVEAL_TRIGGER } from "@/lib/motion";
-/**
- * Three.js is roughly 700kb raw and lives in its own chunk via this dynamic
- * import, so it is never parsed as part of the page module itself.
- *
- * Known limitation, measured not assumed: Turbopack still emits an eager
- * <script async> for this chunk in the prerendered HTML, so the browser
- * downloads it during first load even though nothing renders it yet. It is
- * async, so it does not block parse or paint, but it is bandwidth the hero
- * does not need. scripts/check-bundle.mjs reports this every build.
- * See the note in that script for the options.
- */
-const SignalCorridor = dynamic(
-  () => import("@/components/SignalCorridor").then((m) => m.SignalCorridor),
-  { ssr: false }
-);
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -115,11 +99,10 @@ function Stage({
    * Copy sits on a shared twelve column grid rather than being pushed to
    * whichever edge of a flex row. Two reasons.
    *
-   * The corridor's vanishing point is dead centre of the viewport, so copy
-   * flushed to the outer edge of the container competed with it instead of
-   * composing against it. On the grid a left stage and a right stage are
-   * exact mirrors, five columns each, and the middle two stay clear for the
-   * 3D focal point.
+   * The field behind the page is brightest through the middle of the
+   * viewport, so copy flushed to the outer edge of the container sat in the
+   * dimmest part of it. On the grid a left stage and a right stage are
+   * exact mirrors, five columns each, and the middle two stay clear.
    *
    * Text stays left aligned in a right hand column. Right aligned body copy
    * gives a ragged left edge, which is measurably harder to read, and the
@@ -193,8 +176,8 @@ export default function Home() {
     // Everything that scrolls programmatically goes through Lenis from here,
     // so nothing ever races it with a native smooth scroll.
     const unregisterScroller = registerScroller(lenis);
-    // Lenis subscribes first so scroll is settled before the corridor,
-    // which subscribes on mount, reads it in the same frame.
+    // Lenis subscribes first so scroll is settled before the field and the
+    // HUD, which subscribe on mount, read it in the same frame.
     const offFrame = onFrame((time) => lenis.raf(time));
     lenis.on("scroll", ScrollTrigger.update);
 
@@ -273,16 +256,16 @@ export default function Home() {
     });
 
     /**
-     * Drives the corridor's legibility scrim.
+     * Drives the field's directional light.
      *
-     * The scrim is clear in the middle and white at the edges, so a symmetric
-     * one veils both sides equally even though the copy only ever occupies
-     * one. Each stage declares which side its copy sits on, and the clear
-     * window slides the other way as that stage comes into view.
+     * GlassField's top layer is bright in the middle and clear at the edges.
+     * Each stage declares which side its copy sits on, and the bright window
+     * slides the other way as that stage comes into view, so the copy is
+     * always sitting against the calmer half of the field.
      *
      * Written as a CSS variable rather than React state because it changes on
-     * scroll and must never trigger a render. The scrim transitions the
-     * resulting transform itself, so this is a single property write.
+     * scroll and must never trigger a render. The .scrim class transitions
+     * the resulting transform itself, so this is a single property write.
      */
     const SHIFT = { left: "15vw", right: "-15vw", center: "0px" } as const;
     function applySide(el: HTMLElement) {
@@ -323,22 +306,14 @@ export default function Home() {
       className="relative"
       style={{ background: "#ffffff", color: "#2F5D7C", paddingBottom: "112px" }}
     >
-      <SignalCorridor />
+      <GlassField />
       <JourneyHUD />
       <StickyCTA />
       <ServicePanel service={selectedService} onClose={() => setSelectedService(null)} />
 
       <header className="fixed top-0 inset-x-0 px-3 sm:px-6 py-3 sm:py-4" style={{ zIndex: 10 }}>
-        <div
-          className="max-w-6xl mx-auto flex items-center justify-between rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3"
-          style={{
-            background: "rgba(9,18,28,0.68)",
-            backdropFilter: "blur(16px)",
-            border: "1px solid rgba(126,200,227,0.3)",
-            boxShadow: "0 8px 32px -12px rgba(47,93,124,0.35)",
-          }}
-        >
-          <span className="font-tech text-sm font-bold tracking-tight whitespace-nowrap" style={{ color: "#EAF6FF" }}>
+        <div className="glass-thick glass-edge max-w-6xl mx-auto flex items-center justify-between rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3">
+          <span className="font-tech text-sm font-bold tracking-tight whitespace-nowrap" style={{ color: "#2F5D7C" }}>
             NEX<span style={{ color: "#7EC8E3" }}>ELITE</span>
           </span>
           <a
@@ -355,13 +330,8 @@ export default function Home() {
         <div data-motion="split" data-side="left" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div className="max-w-xl motion-left">
             <div
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium mb-7 sm:mb-9"
-              style={{
-                background: "rgba(255,255,255,0.7)",
-                backdropFilter: "blur(8px)",
-                border: "1px solid rgba(126,200,227,0.5)",
-                color: "#2F5D7C",
-              }}
+              className="glass-thin inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium mb-7 sm:mb-9"
+              style={{ color: "#2F5D7C" }}
             >
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#7EC8E3" }} />
               <span className="font-tech tracking-wider whitespace-nowrap">40M+ views delivered</span>
@@ -397,13 +367,8 @@ export default function Home() {
               </a>
               <a
                 href="mailto:nexelitemedia@gmail.com"
-                className="text-sm font-semibold text-center px-7 py-3.5 rounded-xl transition-all duration-[120ms] whitespace-nowrap"
-                style={{
-                  color: "#2F5D7C",
-                  background: "rgba(255,255,255,0.6)",
-                  backdropFilter: "blur(8px)",
-                  border: "1px solid rgba(47,93,124,0.22)",
-                }}
+                className="glass glass-edge text-sm font-semibold text-center px-7 py-3.5 rounded-xl transition-all duration-[120ms] whitespace-nowrap"
+                style={{ color: "#2F5D7C" }}
               >
                 Start a project
               </a>
@@ -537,13 +502,8 @@ export default function Home() {
               {["Location scouted", "Lit properly", "Graded to brand"].map((chip) => (
                 <span
                   key={chip}
-                  className="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                  style={{
-                    background: "rgba(255,255,255,0.65)",
-                    backdropFilter: "blur(6px)",
-                    border: "1px solid rgba(126,200,227,0.5)",
-                    color: "#2F5D7C",
-                  }}
+                  className="glass-thin px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                  style={{ color: "#2F5D7C" }}
                 >
                   {chip}
                 </span>
@@ -577,12 +537,7 @@ export default function Home() {
           {PROCESS.map((step, i) => (
             <div
               key={step.name}
-              className="motion-tile rounded-2xl px-4 py-5 text-left"
-              style={{
-                background: "rgba(255,255,255,0.7)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(126,200,227,0.45)",
-              }}
+              className="glass glass-edge motion-tile rounded-2xl px-4 py-5 text-left"
             >
               <p className="font-tech text-[10px] font-bold tracking-[0.22em] mb-2" style={{ color: "#7EC8E3" }}>
                 0{i + 1}
@@ -608,15 +563,7 @@ export default function Home() {
         <p className="text-base sm:text-lg leading-relaxed mb-7 motion-left" style={{ color: "#4d6577" }}>
           Cuts land on the beat. Captions arrive on time. Nothing overstays its welcome.
         </p>
-        <div
-          className="lift motion-left inline-flex flex-col gap-1 px-6 py-5 rounded-2xl text-left"
-          style={{
-            background: "rgba(255,255,255,0.7)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(126,200,227,0.45)",
-            boxShadow: "0 16px 40px -20px rgba(47,93,124,0.5)",
-          }}
-        >
+        <div className="glass glass-edge glass-cyan lift motion-left inline-flex flex-col gap-1 px-6 py-5 rounded-2xl text-left">
           <p className="font-disp text-xl font-extrabold" style={{ color: "#2F5D7C" }}>Retention-first editing</p>
           <p className="text-sm" style={{ color: "#4d6577" }}>Every cut earns the next three seconds</p>
         </div>
@@ -647,12 +594,12 @@ export default function Home() {
       </section>
 
       <footer
-        className="relative px-6 py-12"
+        className="glass-thick relative px-6 py-12"
         style={{
           zIndex: 2,
-          background: "rgba(234,246,255,0.75)",
-          borderTop: "1px solid rgba(47,93,124,0.12)",
-          backdropFilter: "blur(10px)",
+          border: "none",
+          borderTop: "1px solid rgba(255,255,255,0.7)",
+          borderRadius: 0,
         }}
       >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between gap-4">
