@@ -218,78 +218,129 @@ button:active:not(.journey-hud button) {
 }
 
 /* ── Glass ─────────────────────────────────────────────────────────────────
-   The surface language for the whole site, in the Apple sense of the word:
-   not a translucent rectangle, but a material with thickness. Four things
-   have to be true at once or it reads as a grey box.
+   The surface language for the whole site, turned up: thick, wet, obviously
+   a material. Five things stacked, and every one of them is doing work.
 
-     1. It refracts something. components/GlassField.tsx puts coloured light
-        and a fine grid behind everything so the blur has content to bend.
-     2. It saturates. Backdrop blur alone washes colour out; pushing
-        saturation back up is what makes it look like glass rather than fog.
-     3. It has an edge. A bright hairline along the top where light catches
-        the lip, dimming toward the bottom. This is the single detail that
-        sells thickness.
-     4. It casts. A wide, soft, far shadow, not a tight drop shadow.
+     1. It refracts something. components/GlassField.tsx puts saturated
+        light and a fine grid behind everything so the blur has content to
+        bend. Without that layer none of this reads.
+     2. It saturates hard. Blur alone desaturates; pushing saturation and a
+        touch of contrast back up is what turns fog into glass.
+     3. It has a lit edge. A bright specular hairline on the top lip and a
+        second, dimmer one bouncing off the bottom, because a real pane
+        catches light twice.
+     4. It splits colour. A faint cyan/sand fringe on the border, which is
+        what thick glass does to light passing through its edge. This is the
+        detail that reads as expensive rather than as a blur filter.
+     5. It casts far. A wide low shadow plus a coloured bloom underneath.
 
-   Composited properties only, so panels stay cheap while scrolling.
+   All of it is backdrop-filter, border, box-shadow and one pseudo element.
+   Nothing here triggers layout or paint on the page beneath, so a screen
+   full of these still scrolls at frame rate.
    ────────────────────────────────────────────────────────────────────────── */
 
-.glass {
+:root {
+  /* One knob for the whole system. Turn this down if it ever gets loud. */
+  --glass-blur: 34px;
+  --glass-sat: 220%;
+  --glass-tint: 0.4;
+}
+
+.glass,
+.glass-thin,
+.glass-thick {
   position: relative;
   isolation: isolate;
-  background: rgba(255, 255, 255, 0.52);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.glass {
+  background:
+    /* Top left sheen, the light source. Diagonal, because a flat wash
+       reads as paint and a gradient reads as a surface. */
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.75) 0%,
+      rgba(255, 255, 255, 0.28) 42%,
+      rgba(255, 255, 255, 0.5) 100%
+    );
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat)) contrast(105%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat)) contrast(105%);
+  border: 1px solid rgba(255, 255, 255, 0.62);
   box-shadow:
-    /* inner lip: light on top, shade underneath */
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    inset 0 -1px 0 rgba(47, 93, 124, 0.07),
-    /* the cast, wide and far */
-    0 22px 60px -30px rgba(47, 93, 124, 0.5);
+    /* the lit top lip */
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    /* light bouncing back off the underside */
+    inset 0 -1px 0 rgba(255, 255, 255, 0.42),
+    /* thickness: a soft interior wall on the leading edge */
+    inset 2px 0 12px -8px rgba(126, 200, 227, 0.9),
+    inset -2px 0 12px -8px rgba(217, 185, 138, 0.7),
+    /* the cast */
+    0 28px 70px -34px rgba(47, 93, 124, 0.62),
+    /* coloured bloom, so the pane looks lit rather than pasted */
+    0 6px 30px -20px rgba(126, 200, 227, 0.85);
 }
 
 /* Thinner glass for chips, pills and anything small. Small elements with
-   heavy blur read as smudges, so the blur scales with the surface. */
+   heavy blur read as smudges, so blur scales down with the surface while
+   the edge treatment stays. */
 .glass-thin {
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    0 8px 24px -16px rgba(47, 93, 124, 0.45);
-}
-
-/* Thick glass for anything that floats above the page and must stay
-   legible over any content: the header, the HUD, the sticky CTA. */
-.glass-thick {
-  background: rgba(255, 255, 255, 0.68);
-  backdrop-filter: blur(40px) saturate(190%);
-  -webkit-backdrop-filter: blur(40px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.68) 0%,
+    rgba(255, 255, 255, 0.3) 60%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  backdrop-filter: blur(18px) saturate(200%);
+  -webkit-backdrop-filter: blur(18px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 0 rgba(47, 93, 124, 0.08),
-    0 18px 48px -24px rgba(47, 93, 124, 0.45);
+    inset 0 -1px 0 rgba(255, 255, 255, 0.35),
+    0 10px 26px -16px rgba(47, 93, 124, 0.55);
 }
 
-/* The specular lip. A one pixel gradient across the top edge, brightest at
-   the centre, which is how a real curved edge catches a diffuse light
-   source. Drawn on ::before so it survives any background change. */
+/* Thick glass for anything floating above the page that must stay legible
+   over any content: header, HUD, sticky CTA, footer. */
+.glass-thick {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.86) 0%,
+    rgba(255, 255, 255, 0.5) 45%,
+    rgba(255, 255, 255, 0.68) 100%
+  );
+  backdrop-filter: blur(52px) saturate(230%) contrast(106%);
+  -webkit-backdrop-filter: blur(52px) saturate(230%) contrast(106%);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 24px -14px rgba(126, 200, 227, 0.9),
+    0 24px 60px -28px rgba(47, 93, 124, 0.6),
+    0 4px 20px -14px rgba(126, 200, 227, 0.7);
+}
+
+/* The edge.
+
+   Two layers on one pseudo element is not possible, so this does the
+   chromatic border and ::after does the specular streak.
+
+   The border trick: paint a gradient across the whole box, then mask out
+   everything except a one pixel frame using the padding box against the
+   border box. Gives a gradient border, which plain border-color cannot do. */
 .glass-edge::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding-top: 1px;
+  padding: 1px;
   pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.95) 35%,
-    rgba(255, 255, 255, 0.95) 65%,
-    transparent 100%
+  background: conic-gradient(
+    from 210deg,
+    rgba(255, 255, 255, 0.95) 0deg,
+    rgba(126, 200, 227, 0.85) 70deg,
+    rgba(255, 255, 255, 0.9) 150deg,
+    rgba(217, 185, 138, 0.8) 250deg,
+    rgba(255, 255, 255, 0.95) 360deg
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -299,65 +350,112 @@ button:active:not(.journey-hud button) {
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
   mask-composite: exclude;
+  z-index: 2;
+}
+
+/* The specular streak. A soft diagonal band of light lying across the top
+   third of the pane, the reflection of whatever is lighting the room.
+   Clipped by the pane's own radius and never interactive. */
+.glass-edge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  overflow: hidden;
+  background: linear-gradient(
+    118deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 34%,
+    rgba(255, 255, 255, 0.18) 46%,
+    transparent 62%
+  );
+  opacity: 0.9;
   z-index: 1;
 }
 
-/* Tint variants. Glass takes the colour of what is behind it, so these are
-   deliberately faint; anything stronger stops reading as a material. */
+/* Tints. Glass takes the colour of what is behind it, so these sit on top
+   of the sheen rather than replacing it. */
 .glass-cyan {
   background:
     linear-gradient(
-      140deg,
-      rgba(126, 200, 227, 0.22) 0%,
-      rgba(255, 255, 255, 0.5) 60%
+      135deg,
+      rgba(126, 200, 227, 0.42) 0%,
+      rgba(255, 255, 255, 0.32) 45%,
+      rgba(126, 200, 227, 0.22) 100%
     );
 }
 
 .glass-sand {
   background:
     linear-gradient(
-      140deg,
-      rgba(217, 185, 138, 0.2) 0%,
-      rgba(255, 255, 255, 0.5) 60%
+      135deg,
+      rgba(217, 185, 138, 0.38) 0%,
+      rgba(255, 255, 255, 0.32) 45%,
+      rgba(217, 185, 138, 0.2) 100%
     );
 }
 
-/* Dark glass, for the one or two places that need to sit as a solid object
-   against the light field rather than dissolve into it. */
+/* Dark glass, for anything that needs to sit as a solid object against the
+   light field rather than dissolve into it. */
 .glass-dark {
-  background: rgba(9, 18, 28, 0.55);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(
+    135deg,
+    rgba(9, 18, 28, 0.68) 0%,
+    rgba(9, 18, 28, 0.48) 100%
+  );
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 22px 60px -28px rgba(9, 18, 28, 0.7);
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 28px 70px -32px rgba(9, 18, 28, 0.8);
 }
 
-/* Cursor sheen. A slow highlight travelling across the pane on hover, the
-   glass equivalent of the lift the rest of the finish system uses. */
+/* Hover: the pane tilts toward the light. Brighter sheen, tighter bloom,
+   and the specular streak slides across. Composited properties only. */
 @media (hover: hover) {
+  .glass,
+  .glass-thin,
+  .glass-thick {
+    transition:
+      box-shadow 380ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 380ms ease;
+  }
+
   .glass:hover,
-  .glass-thin:hover,
   .glass-thick:hover {
-    background-color: rgba(255, 255, 255, 0.62);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 0 30px -12px rgba(126, 200, 227, 1),
+      0 32px 80px -32px rgba(47, 93, 124, 0.66),
+      0 8px 34px -18px rgba(126, 200, 227, 1);
+  }
+
+  .glass-edge::after {
+    transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms ease;
+  }
+
+  .glass-edge:hover::after {
+    transform: translateX(14%);
+    opacity: 1;
   }
 }
 
 /*
-  Fallback. Safari and Chrome have had backdrop-filter for years, but
-  Firefox with layout.css.backdrop-filter disabled and any browser in a
-  reduced-transparency mode will render these as near invisible panels.
-  Where the filter is unsupported the surfaces go opaque instead, which
-  loses the effect and keeps the site readable.
+  Fallback. Where backdrop-filter is unavailable, or the visitor has asked
+  for reduced transparency, every one of these panes would render as a
+  nearly invisible sheet of white on white. Going opaque loses the effect
+  and keeps the site readable, which is the right trade.
 */
 @supports not (backdrop-filter: blur(1px)) {
   .glass,
   .glass-thin,
   .glass-thick {
-    background: rgba(255, 255, 255, 0.94);
+    background: rgba(255, 255, 255, 0.95);
   }
   .glass-dark {
-    background: rgba(9, 18, 28, 0.94);
+    background: rgba(9, 18, 28, 0.95);
   }
 }
