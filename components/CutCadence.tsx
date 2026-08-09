@@ -74,13 +74,7 @@ export function CutCadence() {
   return (
     <div
       ref={ref}
-      className="lift rounded-2xl p-5 sm:p-6 w-full"
-      style={{
-        background: "rgba(255,255,255,0.7)",
-        backdropFilter: "blur(12px)",
-        border: "1px solid rgba(126,200,227,0.45)",
-        boxShadow: "0 20px 50px -26px rgba(47,93,124,0.5)",
-      }}
+      className="glass glass-edge lift rounded-2xl p-5 sm:p-6 w-full"
     >
       <svg
         viewBox={`0 0 ${W} ${H}`}

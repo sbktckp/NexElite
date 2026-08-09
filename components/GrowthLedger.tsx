@@ -133,13 +133,7 @@ export function GrowthLedger() {
   return (
     <div
       ref={ref}
-      className="rounded-2xl px-5 py-5 sm:px-7 sm:py-6 w-full"
-      style={{
-        background: "rgba(255,255,255,0.72)",
-        backdropFilter: "blur(12px)",
-        border: "1px solid rgba(126,200,227,0.45)",
-        boxShadow: "0 20px 50px -24px rgba(47,93,124,0.55)",
-      }}
+      className="glass glass-edge rounded-2xl px-5 py-5 sm:px-7 sm:py-6 w-full"
     >
       {CREATOR_GROWTH.map((c, i) => (
         <Row key={c.name} {...c} active={active} delay={i * 260} />

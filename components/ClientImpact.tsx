@@ -28,12 +28,12 @@ function Card({
     const Icon = c.icon;
     return (
       <article
-        className="motion-tile rounded-2xl p-5 sm:p-6 flex flex-col text-left h-full"
+        className="glass glass-edge motion-tile rounded-2xl p-5 sm:p-6 flex flex-col text-left h-full"
         style={{
-          background: "rgba(255,255,255,0.72)",
-          backdropFilter: "blur(12px)",
-          border: `1px solid ${c.tone}55`,
-          boxShadow: `0 18px 44px -26px ${c.tone}aa`,
+          // The card's own accent tints the glass rather than outlining it,
+          // so the tone reads through the material instead of ringing it.
+          borderColor: `${c.tone}44`,
+          boxShadow: `inset 0 1px 0 rgba(255,255,255,0.85), 0 22px 56px -30px ${c.tone}cc`,
         }}
       >
         <div className="flex items-center gap-3 mb-3">

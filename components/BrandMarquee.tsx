@@ -71,13 +71,14 @@ export function BrandMarquee() {
   return (
     <section
       aria-label="Clients and logged results"
-      className="relative py-5 sm:py-6 flex flex-col gap-3"
+      className="glass relative py-5 sm:py-6 flex flex-col gap-3"
       style={{
         zIndex: 2,
-        borderTop: "1px solid rgba(47,93,124,0.1)",
+        // Full width band, so the pane has edges only top and bottom.
+        border: "none",
+        borderTop: "1px solid rgba(255,255,255,0.7)",
         borderBottom: "1px solid rgba(47,93,124,0.1)",
-        background: "rgba(255,255,255,0.55)",
-        backdropFilter: "blur(8px)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.85)",
         // Fades both ends so tokens dissolve at the edges instead of
         // getting guillotined by the container.
         maskImage:
