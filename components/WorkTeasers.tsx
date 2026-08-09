@@ -20,13 +20,7 @@ export function WorkTeasers() {
           key={study.slug}
           href={`/work/${study.slug}`}
           prefetch
-          className="motion-tile group rounded-2xl overflow-hidden transition-transform duration-[240ms] hover:-translate-y-1"
-          style={{
-            background: "rgba(255,255,255,0.7)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(126,200,227,0.45)",
-            boxShadow: "0 16px 40px -20px rgba(47,93,124,0.5)",
-          }}
+          className="glass motion-tile group rounded-2xl overflow-hidden transition-transform duration-[240ms] hover:-translate-y-1"
         >
           <div className="relative aspect-[3/2] overflow-hidden">
             <Image

@@ -17,15 +17,15 @@ export function StickyCTA() {
   return (
     <a
       href="mailto:nexelitemedia@gmail.com"
-      className="fixed bottom-5 right-5 sm:bottom-7 sm:right-7 flex items-center gap-2 font-bold text-sm px-5 py-3 rounded-full shadow-2xl transition-all duration-300"
+      className="glass-thick glass-edge fixed bottom-5 right-5 sm:bottom-7 sm:right-7 flex items-center gap-2 font-bold text-sm px-5 py-3 rounded-full transition-all duration-300"
       style={{
         zIndex: 12,
-        background: "#2F5D7C",
-        color: "#ffffff",
+        color: "#2F5D7C",
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0) scale(1)" : "translateY(12px) scale(0.92)",
         pointerEvents: visible ? "auto" : "none",
-        boxShadow: "0 12px 32px -8px rgba(47,93,124,0.5)",
+        boxShadow:
+          "inset 0 1px 0 rgba(255,255,255,0.95), 0 18px 44px -16px rgba(47,93,124,0.5)",
       }}
     >
       Start a project

@@ -78,7 +78,14 @@ export function ServicePanel({
     <div
       ref={scrimRef}
       className="fixed inset-0 flex items-center justify-center p-3 sm:p-6"
-      style={{ zIndex: 100, background: "rgba(9,18,28,0.7)", backdropFilter: "blur(6px)" }}
+      style={{
+        zIndex: 100,
+        // Heavier blur than the panes themselves. The backdrop of a modal
+        // is the one place where losing detail is the point.
+        background: "rgba(20,40,58,0.42)",
+        backdropFilter: "blur(20px) saturate(140%)",
+        WebkitBackdropFilter: "blur(20px) saturate(140%)",
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -93,8 +100,11 @@ export function ServicePanel({
         style={{
           maxWidth: "1000px",
           height: "80vh",
-          background: "#ffffff",
-          boxShadow: "0 40px 100px -20px rgba(47,93,124,0.5), 0 0 0 1px rgba(126,200,227,0.3)",
+          background: "rgba(255,255,255,0.86)",
+          backdropFilter: "blur(40px) saturate(190%)",
+          WebkitBackdropFilter: "blur(40px) saturate(190%)",
+          boxShadow:
+            "inset 0 1px 0 rgba(255,255,255,0.95), 0 40px 100px -20px rgba(47,93,124,0.5), 0 0 0 1px rgba(255,255,255,0.6)",
         }}
       >
         <div
