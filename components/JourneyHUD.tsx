@@ -2,38 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SERVICES } from "@/lib/services";
-import { corridorState, gateFraction } from "@/components/SignalCorridor";
+import { gateFraction } from "@/lib/journey";
 import { onFrame } from "@/lib/frame";
 import { scrollFraction, scrollToFraction } from "@/lib/scroll";
 
 /**
  * JourneyHUD
  *
- * The progress bar and the 3D journey are the same instrument. The corridor
- * writes its live state every frame and this renders the readable half of it,
- * so the ring igniting in 3D, the rail segment brightening and the caption
- * changing all fire as one event.
+ * The rail at the bottom: where you are on the page, which channel that
+ * puts you in front of, and a way to jump between them.
  *
- * ── Why this reads smooth now ─────────────────────────────────────────────
- * It used to run its own requestAnimationFrame loop, which is the exact
- * two clock problem lib/frame.ts exists to prevent: the HUD sampled state
- * from a frame the corridor had not written yet, so the glow lagged the
- * ring by a frame under load.
+ * It used to read live state written by the Three.js corridor every frame.
+ * With the corridor gone, document scroll is the only clock, which is
+ * simpler and honest: the rail now measures the thing the visitor is
+ * actually moving.
  *
- * It also pushed every continuous value through React state at 12fps, so
- * the rail glow and the segment fills stepped in visible 80ms increments
- * instead of gliding.
- *
+ * ── Why this reads smooth ──────────────────────────────────────────────
  * Split by rate of change. Continuous values, progress and ignition, are
  * written to CSS custom properties on the container every frame and consumed
  * by calc() in the styles below, so they move at display rate and cost no
  * renders at all. Discrete values, which gate you are at and the rounded
  * percentage, still use state but only set when they actually change.
  *
- * Under reduced motion or when WebGL is unavailable the corridor never
- * boots, so corridorState stays frozen at zero. The fallback below reads
- * document scroll directly in that case, which is why the rail still works
- * with the journey switched off.
+ * It subscribes to the shared frame bus rather than running its own rAF, so
+ * it samples scroll in the same frame Lenis settles it.
  */
 
 const SAMPLE_MS = 80;
@@ -55,27 +47,13 @@ export function JourneyHUD() {
       const root = rootRef.current;
       if (!root) return;
 
-      let progress: number;
-      let ignite: number;
-      let lock: number;
-      let nextGate: number;
+      const progress = scrollFraction();
+      const scaled = progress * N;
+      const nextGate = Math.min(N - 1, Math.floor(scaled));
 
-      if (corridorState.live) {
-        progress = corridorState.progress;
-        ignite = corridorState.ignite;
-        lock = corridorState.resolve;
-        nextGate = corridorState.gate;
-      } else {
-        // No journey rendering. Derive everything from the page itself so
-        // the rail is still an honest progress indicator.
-        progress = scrollFraction();
-        lock = progress;
-        const scaled = progress * N;
-        nextGate = Math.min(N - 1, Math.floor(scaled));
-        // Peaks at the centre of each segment, so the active pip still
-        // breathes as you pass through it.
-        ignite = 1 - Math.abs((scaled % 1) - 0.5) * 2;
-      }
+      // Peaks at the centre of each segment, so the active pip breathes as
+      // you pass through it rather than snapping at the boundary.
+      const ignite = 1 - Math.abs((scaled % 1) - 0.5) * 2;
 
       // Continuous, every frame, zero renders.
       root.style.setProperty("--p", progress.toFixed(4));
@@ -89,7 +67,7 @@ export function JourneyHUD() {
         gateRef.current = nextGate;
         setGate(nextGate);
       }
-      const nextPct = Math.round(lock * 100);
+      const nextPct = Math.round(progress * 100);
       if (nextPct !== pctRef.current) {
         pctRef.current = nextPct;
         setPct(nextPct);
@@ -106,36 +84,33 @@ export function JourneyHUD() {
       style={{ ["--p" as string]: "0", ["--ig" as string]: "0" }}
     >
       <div
-        className="rounded-2xl px-4 py-2.5"
+        className="glass-thick glass-edge rounded-2xl px-4 py-2.5"
         style={{
-          background: "rgba(9,18,28,0.72)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(126,200,227,0.28)",
+          // The service tone bleeds through the pane as you cross into it.
+          // Everything else about the panel is fixed, so this is the only
+          // thing that reads as movement when a gate changes.
           boxShadow:
-            "0 0 0 1px rgba(126,200,227,calc(0.1 + var(--ig) * 0.22))," +
-            " 0 12px 34px -14px rgba(47,93,124,0.5)," +
-            ` 0 0 calc(14px + var(--ig) * 26px) -12px ${svc.tone}`,
+            "inset 0 1px 0 rgba(255,255,255,0.95)," +
+            " 0 18px 48px -24px rgba(47,93,124,0.45)," +
+            ` 0 0 calc(16px + var(--ig) * 28px) -14px ${svc.tone}`,
         }}
       >
-        {/* Resting state is two rows: a label line and the rail. Everything
-            else that used to sit here, the tagline, the description slot and
-            a separate status row, made the panel tall enough to cover the
-            hero CTAs on a short viewport. The detail now lives in the hover
-            drawer below, which grows upward from a bottom anchored element
-            so nothing above it shifts. */}
+        {/* Resting state is two rows: a label line and the rail. The detail
+            lives in the hover drawer below, which grows upward from a bottom
+            anchored element so nothing above it shifts. */}
         <div className="flex items-center justify-between gap-3 mb-1.5">
           <span
             className="text-[12px] sm:text-[13px] font-semibold truncate"
-            style={{ color: "#EAF6FF" }}
+            style={{ color: "#2F5D7C" }}
           >
             {svc.name}
           </span>
           <span
             className="font-tech text-[10px] sm:text-[11px] shrink-0 tabular-nums tracking-wider"
-            style={{ color: "rgba(234,246,255,0.5)" }}
+            style={{ color: "rgba(47,93,124,0.55)" }}
           >
             {String(gate + 1).padStart(2, "0")}/{String(N).padStart(2, "0")}
-            <span style={{ color: "rgba(234,246,255,0.28)" }}> · </span>
+            <span style={{ color: "rgba(47,93,124,0.32)" }}> · </span>
             {pct}%
           </span>
         </div>
@@ -150,13 +125,13 @@ export function JourneyHUD() {
             return (
               <button
                 key={s.id}
-                onClick={() => scrollToFraction(Math.min(0.995, gateFraction(i, N)))}
+                onClick={() => scrollToFraction(gateFraction(i, N))}
                 title={s.name}
                 aria-label={`Go to ${s.name}`}
                 aria-current={active ? "step" : undefined}
                 className="relative flex-1 rounded-full overflow-hidden hover:scale-y-[2] focus-visible:outline-2 focus-visible:outline-offset-4"
                 style={{
-                  background: "rgba(126,200,227,0.16)",
+                  background: "rgba(47,93,124,0.14)",
                   outlineColor: s.tone,
                   transition: "transform 200ms ease",
                   // Continuous, so the active pip tracks ignition at display
@@ -187,7 +162,7 @@ export function JourneyHUD() {
         <div className="hud-drawer">
           <p
             className="text-[12px] leading-snug"
-            style={{ color: "rgba(234,246,255,0.68)" }}
+            style={{ color: "rgba(47,93,124,0.75)" }}
           >
             {svc.description}
           </p>
