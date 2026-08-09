@@ -18,7 +18,7 @@
 
 ### ON AIR
 
-This is NexElite Media's own site, a Next.js build that opens on a broadcast-monitor concept: signal in, signal out. Everything on the page, from the corridor of client proof to the ring animations to the channel grid of services, is built around one idea. Turn noise into signal, literally rendered as motion.
+This is NexElite Media's own site, a Next.js build that opens on a broadcast-monitor concept: signal in, signal out. Everything on the page, from the glass surfaces to the ring animations to the channel grid of services, is built around one idea. Turn noise into signal, literally rendered as motion.
 
 The one-line pitch, straight from the site's own metadata: "We turn noise into signal. Reels, campaigns and brand content that people actually stop to watch. 40M+ views delivered across 60+ brands."
 
@@ -28,14 +28,14 @@ The one-line pitch, straight from the site's own metadata: "We turn noise into s
 
 ```mermaid
 flowchart LR
-    A[Noise\nunfocused content] --> B[SignalCorridor]
+    A[Noise\nunfocused content] --> B[GlassField]
     B --> C[SignalRings]
     C --> D[ChannelGrid\nservices]
     D --> E[StatsProof\nPhoneProof]
     E --> F[Signal\nclient decides to work with us]
 ```
 
-Six components carry the concept end to end. `SignalCorridor` and `SignalRings` do the heavy visual lifting, and `SignalCorridor` alone is the largest file in the repo at 23KB. `ChannelGrid` lays out the eight service lines, and `StatsProof` and `PhoneProof` are where the signal becomes a number you can trust.
+Six components carry the concept end to end. `GlassField` lays down the field of light every surface refracts, and `SignalRings` does the rest of the visual lifting. `ChannelGrid` lays out the eight service lines, and `StatsProof` and `PhoneProof` are where the signal becomes a number you can trust.
 
 ---
 
@@ -67,7 +67,7 @@ app/
 └── work/               # case-study routes, in progress
 
 components/
-├── SignalCorridor.tsx  # the centerpiece, largest component in the repo
+├── GlassField.tsx      # the field of light behind every glass surface
 ├── SignalRings.tsx
 ├── ChannelGrid.tsx      # renders the 8-service catalog
 ├── JourneyHUD.tsx
@@ -95,7 +95,7 @@ scripts/
 ### ON THE DIAL
 
 - **Framework:** Next.js 16, React 19
-- **Motion:** GSAP, Lenis (smooth scroll), Three.js
+- **Motion:** GSAP, Lenis (smooth scroll), CSS glass surfaces
 - **Type-safety:** TypeScript, strict
 - **Styling:** Tailwind CSS v4
 - **Icons:** Lucide React
