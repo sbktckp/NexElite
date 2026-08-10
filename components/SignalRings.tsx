@@ -5,7 +5,7 @@ import { SERVICES } from "@/lib/services";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 /**
- * SignalRings, the new signature visual.
+ * SignalRings.
  * Concentric SVG rings with a rotating sweep, one ring-arc per service.
  * Deliberately NOT a particle system: real vector paths, real DOM nodes,
  * so it can be described to assistive tech and works with zero JS motion.
@@ -32,15 +32,6 @@ export function SignalRings({ activeIndex = -1 }: { activeIndex?: number }) {
           activeIndex >= 0 ? SERVICES[activeIndex].name : "none"
         }.`}
       >
-        <defs>
-          <radialGradient id="ringGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#7EC8E3" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#7EC8E3" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-
-        <circle cx={cx} cy={cy} r={baseR + ringGap * (N - 1) + 30} fill="url(#ringGlow)" />
-
         {SERVICES.map((s, i) => {
           const r = baseR + i * ringGap;
           const isActive = i === activeIndex;
@@ -51,8 +42,8 @@ export function SignalRings({ activeIndex = -1 }: { activeIndex?: number }) {
               cy={cy}
               r={r}
               fill="none"
-              stroke={isActive ? s.tone : "rgba(47,93,124,0.16)"}
-              strokeWidth={isActive ? 2.5 : 1.2}
+              stroke={isActive ? s.tone : "var(--rule)"}
+              strokeWidth={isActive ? 2 : 1}
               style={{ transition: "stroke 0.4s ease, stroke-width 0.4s ease" }}
             />
           );
@@ -71,15 +62,15 @@ export function SignalRings({ activeIndex = -1 }: { activeIndex?: number }) {
               y1={cy}
               x2={cx}
               y2={cy - (baseR + ringGap * (N - 1) + 20)}
-              stroke="#7EC8E3"
-              strokeWidth="2"
-              opacity="0.55"
+              stroke="var(--accent)"
+              strokeWidth="1.5"
+              opacity="0.5"
             />
           </g>
         )}
 
-        <circle cx={cx} cy={cy} r={10} fill="#2F5D7C" />
-        <circle cx={cx} cy={cy} r={4} fill="#7EC8E3" />
+        <circle cx={cx} cy={cy} r={9} fill="var(--ink)" />
+        <circle cx={cx} cy={cy} r={3.5} fill="var(--paper)" />
 
         {SERVICES.map((s, i) => {
           const r = baseR + i * ringGap;
@@ -95,7 +86,7 @@ export function SignalRings({ activeIndex = -1 }: { activeIndex?: number }) {
               cy={dotY}
               r={5}
               fill={s.tone}
-              stroke="#ffffff"
+              stroke="var(--paper)"
               strokeWidth="1.5"
             />
           );

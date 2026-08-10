@@ -72,32 +72,21 @@ export function CutCadence() {
   }, []);
 
   return (
-    <div
-      ref={ref}
-      className="glass glass-edge lift rounded-2xl p-5 sm:p-6 w-full"
-    >
+    <div ref={ref} className="surface lift p-5 sm:p-6 w-full">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="w-full h-auto"
         role="img"
         aria-label="Diagram comparing attention across a rhythmically cut edit, which resets at each cut, against a lazily cut edit, which decays continuously."
       >
-        <defs>
-          <linearGradient id="cadenceStroke" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#2F5D7C" />
-            <stop offset="70%" stopColor="#7EC8E3" />
-            <stop offset="100%" stopColor="#D9B98A" />
-          </linearGradient>
-        </defs>
-
         {/* Baseline and ceiling, the only structure the diagram needs. */}
-        <line x1="24" y1={BASE} x2={W - 24} y2={BASE} stroke="rgba(47,93,124,0.18)" strokeWidth="1" />
+        <line x1="24" y1={BASE} x2={W - 24} y2={BASE} stroke="rgba(23,20,15,0.32)" strokeWidth="1" />
         <line
           x1="24"
           y1={TOP}
           x2={W - 24}
           y2={TOP}
-          stroke="rgba(47,93,124,0.12)"
+          stroke="rgba(23,20,15,0.14)"
           strokeWidth="1"
           strokeDasharray="3 5"
         />
@@ -110,7 +99,7 @@ export function CutCadence() {
               y1={TOP - 6}
               x2={x}
               y2={BASE}
-              stroke="rgba(126,200,227,0.45)"
+              stroke="rgba(23,20,15,0.14)"
               strokeWidth="1"
               style={{
                 opacity: active ? 1 : 0,
@@ -121,7 +110,7 @@ export function CutCadence() {
               cx={x}
               cy={TOP - 6}
               r="2.5"
-              fill="#7EC8E3"
+              fill="var(--accent)"
               style={{
                 opacity: active ? 1 : 0,
                 transition: `opacity 400ms ease ${600 + i * 90}ms`,
@@ -134,17 +123,19 @@ export function CutCadence() {
         <path
           d={LAZY}
           fill="none"
-          stroke="rgba(47,93,124,0.22)"
-          strokeWidth="2"
+          stroke="rgba(23,20,15,0.22)"
+          strokeWidth="1.5"
           strokeDasharray="4 6"
         />
 
-        {/* The method. */}
+        {/* The method. Solid ink, because in this theme the emphasised line
+            in a chart is the one drawn heaviest, not the one drawn in a
+            gradient. */}
         <path
           d={tunedPath()}
           fill="none"
-          stroke="url(#cadenceStroke)"
-          strokeWidth="2.5"
+          stroke="var(--ink)"
+          strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"
           style={{
@@ -154,31 +145,31 @@ export function CutCadence() {
           }}
         />
 
-        <text x="24" y={TOP - 18} className="font-tech" fontSize="10" fill="#8aa3b5" letterSpacing="1.6">
+        <text x="24" y={TOP - 18} className="font-tech" fontSize="10" fill="var(--muted)" letterSpacing="1.6">
           ATTENTION HELD
         </text>
-        <text x="24" y={BASE + 22} className="font-tech" fontSize="10" fill="#8aa3b5" letterSpacing="1.6">
+        <text x="24" y={BASE + 22} className="font-tech" fontSize="10" fill="var(--muted)" letterSpacing="1.6">
           CUT
         </text>
-        <text x={W - 24} y={BASE + 22} textAnchor="end" className="font-tech" fontSize="10" fill="#8aa3b5" letterSpacing="1.6">
+        <text x={W - 24} y={BASE + 22} textAnchor="end" className="font-tech" fontSize="10" fill="var(--muted)" letterSpacing="1.6">
           CUT
         </text>
       </svg>
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3">
-        <span className="flex items-center gap-2 text-xs" style={{ color: "#2F5D7C" }}>
-          <span className="w-5 h-0.5 rounded-full" style={{ background: "linear-gradient(90deg, #2F5D7C, #7EC8E3)" }} />
+        <span className="flex items-center gap-2 text-xs" style={{ color: "var(--ink)" }}>
+          <span className="w-5" style={{ height: 2, background: "var(--ink)" }} />
           <span className="font-semibold">Cut on the beat</span>
         </span>
-        <span className="flex items-center gap-2 text-xs" style={{ color: "#8aa3b5" }}>
+        <span className="flex items-center gap-2 text-xs" style={{ color: "var(--muted)" }}>
           <span
-            className="w-5 h-0.5 rounded-full"
-            style={{ background: "repeating-linear-gradient(90deg, rgba(47,93,124,0.35) 0 3px, transparent 3px 6px)" }}
+            className="w-5"
+            style={{ height: 2, background: "repeating-linear-gradient(90deg, rgba(23,20,15,0.22) 0 3px, transparent 3px 6px)" }}
           />
           <span>Left running</span>
         </span>
       </div>
-      <p className="text-[11px] leading-relaxed mt-2" style={{ color: "#8aa3b5" }}>
+      <p className="text-[11px] leading-relaxed mt-2" style={{ color: "var(--muted)" }}>
         Illustrative. A diagram of how we edit, not a measurement.
       </p>
     </div>

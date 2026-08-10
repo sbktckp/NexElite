@@ -20,7 +20,7 @@ export function WorkTeasers() {
           key={study.slug}
           href={`/work/${study.slug}`}
           prefetch
-          className="glass motion-tile group rounded-2xl overflow-hidden transition-transform duration-[240ms] hover:-translate-y-1"
+          className="surface motion-tile group overflow-hidden"
         >
           <div className="relative aspect-[3/2] overflow-hidden">
             <Image
@@ -28,34 +28,34 @@ export function WorkTeasers() {
               alt={study.coverAlt}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className="object-cover transition-transform duration-[480ms] group-hover:scale-[1.03]"
+              className="object-cover transition-transform duration-[600ms] group-hover:scale-[1.02]"
               style={{ viewTransitionName: `work-${study.slug}` }}
             />
           </div>
           <div className="p-5">
             <p
               className="font-tech text-[10px] font-bold uppercase tracking-[0.22em] mb-2"
-              style={{ color: "#7EC8E3" }}
+              style={{ color: "var(--accent)" }}
             >
               {study.channel}
             </p>
             <h3
-              className="font-disp text-xl font-extrabold mb-2 flex items-center gap-1.5"
-              style={{ color: "#2F5D7C" }}
+              className="font-disp text-2xl mb-2 flex items-center gap-1.5"
+              style={{ color: "var(--ink)", fontWeight: 700 }}
             >
               {study.client}
               <ArrowUpRight className="w-4 h-4 flex-shrink-0 opacity-0 -translate-x-1 transition-all duration-[240ms] group-hover:opacity-100 group-hover:translate-x-0" />
             </h3>
-            <p className="text-sm leading-relaxed mb-4" style={{ color: "#4d6577" }}>
+            <p className="text-sm leading-relaxed mb-4" style={{ color: "var(--body)" }}>
               {study.summary}
             </p>
             <div className="flex flex-wrap gap-x-5 gap-y-2">
               {study.results.slice(0, 2).map((r) => (
                 <div key={r.metric}>
-                  <p className="font-disp text-lg font-extrabold" style={{ color: "#2F5D7C" }}>
+                  <p className="figure text-xl" style={{ color: "var(--ink)", fontWeight: 700 }}>
                     {r.value}
                   </p>
-                  <p className="text-[11px] uppercase tracking-wider" style={{ color: "#6f8ca3" }}>
+                  <p className="text-[11px] uppercase tracking-wider" style={{ color: "var(--muted)" }}>
                     {r.metric}
                   </p>
                 </div>
