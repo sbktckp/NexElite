@@ -28,35 +28,35 @@ function Card({
     const Icon = c.icon;
     return (
       <article
-        className="glass glass-edge motion-tile rounded-2xl p-5 sm:p-6 flex flex-col text-left h-full"
+        className="surface motion-tile p-5 sm:p-6 flex flex-col text-left h-full"
         style={{
-          // The card's own accent tints the glass rather than outlining it,
-          // so the tone reads through the material instead of ringing it.
-          borderColor: `${c.tone}44`,
-          boxShadow: `inset 0 1px 0 rgba(255,255,255,0.85), 0 22px 56px -30px ${c.tone}cc`,
+          // The card's own tone is a rule along the top, the way a printed
+          // section marks itself. The rest of the box stays hairline, so
+          // five of these side by side read as a set rather than a paint box.
+          borderTop: `2px solid ${c.tone}`,
         }}
       >
         <div className="flex items-center gap-3 mb-3">
           <span
-            className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0"
-            style={{ background: `${c.tone}22`, color: "#2F5D7C" }}
+            className="flex items-center justify-center w-9 h-9 shrink-0"
+            style={{ border: "1px solid var(--rule)", color: c.tone }}
           >
             <Icon className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
           </span>
           <div className="min-w-0">
             <h3
-              className="font-disp font-extrabold leading-tight truncate"
-              style={{ fontSize: featured ? "clamp(18px, 2.4vw, 24px)" : "17px", color: "#2F5D7C" }}
+              className="font-disp leading-tight truncate"
+              style={{ fontSize: featured ? "clamp(19px, 2.4vw, 26px)" : "18px", fontWeight: 700, color: "var(--ink)" }}
             >
               {c.client}
             </h3>
-            <p className="font-tech text-[10px] uppercase tracking-[0.18em] font-bold" style={{ color: "#8aa3b5" }}>
+            <p className="font-tech text-[10px] uppercase tracking-[0.18em] font-bold" style={{ color: "var(--muted)" }}>
               {c.sector}
             </p>
           </div>
         </div>
 
-        <p className="text-sm leading-relaxed mb-4" style={{ color: "#4d6577" }}>
+        <p className="text-sm leading-relaxed mb-4" style={{ color: "var(--body)" }}>
           {c.brief}
         </p>
 
@@ -64,11 +64,11 @@ function Card({
           {c.services.map((s) => (
             <span
               key={s}
-              className="px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
+              className="px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap"
               style={{
-                background: "rgba(234,246,255,0.8)",
-                border: "1px solid rgba(126,200,227,0.4)",
-                color: "#2F5D7C",
+                background: "var(--paper-2)",
+                border: "1px solid var(--rule)",
+                color: "var(--ink)",
               }}
             >
               {s}
@@ -78,7 +78,7 @@ function Card({
 
         <ul className="mt-auto flex flex-col gap-2">
           {c.outcomes.map((o) => (
-            <li key={o} className="flex gap-2.5 text-sm leading-snug" style={{ color: "#2F5D7C" }}>
+            <li key={o} className="flex gap-2.5 text-sm leading-snug" style={{ color: "var(--ink)" }}>
               <span
                 className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
                 style={{ background: c.tone }}
