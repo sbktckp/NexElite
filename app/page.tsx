@@ -3,14 +3,10 @@
 /* ──────────────────────────────────────────────────────────────────────────
    NexElite Media, landing page
 
-   Set as an editorial spread. Warm paper, one ink, one accent, hairline
-   rules, and a high-contrast serif doing the work a background effect used
-   to do. Noise into signal is told by the typography now: the page opens
-   loose and large and tightens into ruled, tabular proof.
-
-   This replaces a glass theme, which replaced a Three.js corridor. Both of
-   those put the interest behind the content. This one puts it in the
-   content, which is the version that still works when the copy changes.
+   Set on glass. A dark base, three accents, frosted panes, and an aurora
+   field drifting behind all of it. The interest is in the material and in
+   the typography rather than in a 3D scene, which is the version that still
+   works when the copy changes.
 
    Surfaces are requested by role (.surface, .surface-lead, .surface-quiet)
    and colour by token (var(--ink), var(--accent)). No component knows what
@@ -37,6 +33,7 @@ import { JourneyHUD } from "@/components/JourneyHUD";
 import { PaperGround } from "@/components/PaperGround";
 import { ServicePanel } from "@/components/ServicePanel";
 import { SignalRings } from "@/components/SignalRings";
+import { OfferBar, Plans, CreatorNetwork, BrandAudit } from "@/components/Upgrade";
 
 import { SERVICES, type Service } from "@/lib/services";
 import { CASE_STUDIES } from "@/lib/work";
@@ -275,15 +272,13 @@ export default function Home() {
       <StickyCTA />
       <ServicePanel service={selectedService} onClose={() => setSelectedService(null)} />
 
-      {/* Masthead. A newspaper does not float its nameplate in a card, it
-          rules it off from the page. So: a full width paper band, and the
+      {/* Masthead. A full width pane rather than a floating card, and the
           hairline that closes it is the reading-position rail rendered by
           JourneyHUD. One object doing both jobs, which is why the page no
-          longer carries chrome at two opposite edges. */}
-      <header
-        className="fixed top-0 inset-x-0 pb-px"
-        style={{ zIndex: 10, background: "var(--paper)" }}
-      >
+          longer carries chrome at two opposite edges. The offer bar mounts
+          inside it for the same reason: one piece of top chrome, not two. */}
+      <header className="fixed top-0 inset-x-0 pb-px glass-bar" style={{ zIndex: 10 }}>
+        <OfferBar />
         <div className="max-w-6xl mx-auto flex items-center justify-between px-5 sm:px-6 py-3 sm:py-3.5">
           {/* Nameplate: the crowned N from the logo, then the set wordmark.
               The full lockup carries a tagline and a rule under it, neither
@@ -316,7 +311,7 @@ export default function Home() {
         <JourneyHUD />
       </header>
 
-      <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 pt-28 sm:pt-32" style={{ zIndex: 2 }}>
+      <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 pt-40 sm:pt-44" style={{ zIndex: 2 }}>
         <div data-motion="split" data-side="left" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div className="max-w-xl motion-left">
             <div
@@ -354,17 +349,17 @@ export default function Home() {
             <div className="flex items-center gap-3 flex-wrap">
               <a
                 href="#proof"
-                className="flex items-center justify-center gap-1.5 text-sm font-bold px-7 py-3.5 transition-colors duration-[240ms] whitespace-nowrap"
+                className="flex items-center justify-center gap-1.5 text-sm font-bold px-7 py-3.5 rounded-full transition-colors duration-[240ms] whitespace-nowrap"
                 style={{ background: "var(--ink)", color: "var(--paper)" }}
               >
                 See the numbers <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
               </a>
               <a
-                href="mailto:nexelitemedia@gmail.com"
-                className="surface text-sm font-semibold text-center px-7 py-3.5 transition-all duration-[120ms] whitespace-nowrap"
+                href="#audit"
+                className="surface text-sm font-semibold text-center px-7 py-3.5 rounded-full transition-all duration-[120ms] whitespace-nowrap"
                 style={{ color: "var(--ink)" }}
               >
-                Start a project
+                Get your brand audit
               </a>
             </div>
           </div>
@@ -374,10 +369,10 @@ export default function Home() {
         </div>
         <div
           className="absolute bottom-24 left-1/2 -translate-x-1/2 hidden min-[400px]:flex flex-col items-center gap-2"
-          style={{ color: "rgba(23,20,15,0.25)" }}
+          style={{ color: "var(--muted)" }}
         >
           <span className="font-tech text-[10px] uppercase tracking-[0.25em] font-bold whitespace-nowrap">Scroll to tune</span>
-          <div className="w-px h-9 animate-pulse" style={{ background: "linear-gradient(180deg, rgba(23,20,15,0.25), transparent)" }} />
+          <div className="w-px h-9 animate-pulse" style={{ background: "linear-gradient(180deg, var(--rule-strong), transparent)" }} />
         </div>
       </section>
 
@@ -395,7 +390,7 @@ export default function Home() {
             One frequency.
           </h2>
           <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "var(--body)" }}>
-            Tap a channel, or use the rule under the masthead, to see what it delivers.
+            Tap a channel to see what it delivers.
           </p>
         </div>
         <div data-motion="grid" data-side="center" className="stage-copy w-full">
@@ -550,6 +545,74 @@ export default function Home() {
         </div>
       </Stage>
 
+      {/* Plans. Every field a buyer needs to decide without contacting us
+          first, which is the whole point of the section. */}
+      <section id="plans" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
+        <div data-motion="center" data-side="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
+          <p className="kicker mb-5">What it costs</p>
+          <h2
+            className="font-disp mb-5"
+            style={{ fontSize: "clamp(30px, 7vw, 62px)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.02, color: "var(--ink)" }}
+          >
+            Six ways in.
+            <br />
+            No mystery pricing.
+          </h2>
+          <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "var(--body)" }}>
+            What each plan includes, who it suits, and what it is meant to
+            produce. Decide before you talk to us.
+          </p>
+        </div>
+        <div data-motion="grid" data-side="center" className="stage-copy w-full max-w-6xl mx-auto">
+          <Plans />
+        </div>
+      </section>
+
+      {/* Creator network. A brand should be able to judge the roster without
+          asking for a deck. */}
+      <section id="creators" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
+        <div data-motion="center" data-side="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-14">
+          <p className="kicker mb-5">The network</p>
+          <h2
+            className="font-disp mb-5"
+            style={{ fontSize: "clamp(30px, 7vw, 62px)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.02, color: "var(--ink)" }}
+          >
+            Not a list.
+            <br />
+            A roster we manage.
+          </h2>
+          <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "var(--body)" }}>
+            Filter by niche, platform and size. Every creator here is managed by
+            us, not pulled from a database.
+          </p>
+        </div>
+        <div data-motion="grid" data-side="center" className="stage-copy w-full max-w-6xl mx-auto">
+          <CreatorNetwork />
+        </div>
+      </section>
+
+      {/* Brand audit. The reason to interact rather than browse. */}
+      <section id="audit" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
+        <div data-motion="center" data-side="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-10">
+          <p className="kicker mb-5">Free diagnostic</p>
+          <h2
+            className="font-disp mb-5"
+            style={{ fontSize: "clamp(30px, 7vw, 62px)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.02, color: "var(--ink)" }}
+          >
+            Find what&apos;s holding
+            <br />
+            your brand back.
+          </h2>
+          <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "var(--body)" }}>
+            Eight questions, one score, and the gaps ranked by what they are
+            costing you.
+          </p>
+        </div>
+        <div data-motion="center" data-side="center" className="stage-copy w-full">
+          <BrandAudit />
+        </div>
+      </section>
+
       <section
         className="relative min-h-[100svh] flex items-center justify-center px-5 sm:px-6 text-center"
         style={{ zIndex: 2 }}
@@ -566,7 +629,7 @@ export default function Home() {
           </p>
           <a
             href="mailto:nexelitemedia@gmail.com"
-            className="inline-flex items-center gap-2 font-bold px-10 py-4 text-sm sm:text-base transition-colors duration-[240ms] whitespace-nowrap"
+            className="inline-flex items-center gap-2 font-bold px-10 py-4 rounded-full text-sm sm:text-base transition-colors duration-[240ms] whitespace-nowrap"
             style={{ background: "var(--ink)", color: "var(--paper)" }}
           >
             nexelitemedia@gmail.com <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
@@ -578,8 +641,8 @@ export default function Home() {
         className="relative px-5 sm:px-6 py-12"
         style={{
           zIndex: 2,
-          background: "var(--paper)",
-          borderTop: "2px solid var(--ink)",
+          background: "rgba(10,13,24,0.6)",
+          borderTop: "1px solid var(--rule)",
         }}
       >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between gap-4">
