@@ -61,6 +61,22 @@ body {
   overflow-x: hidden;
 }
 
+/* Vignette. The aurora alone filled whole viewports with one flat wash,
+   because a blurred mass at 24% opacity across 58vw has no edge anywhere.
+   Darkening the corners gives the field a centre and pushes the colour back
+   behind the type, which is where it belongs. Fixed and inert, above the
+   background layer and below the content layer. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 85% at 50% 40%, transparent 35%, rgba(7, 13, 28, 0.72) 100%),
+    linear-gradient(180deg, rgba(7, 13, 28, 0.5) 0%, transparent 22%, transparent 78%, rgba(7, 13, 28, 0.6) 100%);
+}
+
 ::selection {
   background: var(--accent);
   color: #fff;
@@ -123,11 +139,15 @@ body {
   border-top: 2px solid var(--accent);
 }
 
-/* Masthead. Full bleed, so no radius, but the same pane material. */
+/* Masthead. Full bleed, so no radius, but the same pane material.
+
+   Tinted heavier than a normal pane. A 62px serif scrolling underneath was
+   still legible through the glass, and a headline reading through the
+   nameplate is worse than a slightly less transparent bar. */
 .glass-bar {
-  background: rgba(7, 13, 28, 0.72);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  background: rgba(7, 13, 28, 0.9);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
   border-bottom: 1px solid var(--rule);
 }
 
@@ -165,6 +185,22 @@ header > div:first-child > span:first-child {
 header > div:first-child a {
   background: var(--accent-warm) !important;
   box-shadow: 0 4px 18px rgba(255, 107, 61, 0.34);
+}
+
+/* ── The lockup on dark ─────────────────────────────────────────────────
+   The full logo is drawn for light stock: the crown and the "elite MEDIA"
+   line are near black, so on this base half the wordmark disappears and
+   only the blue brush survives. Two honest options were recolouring the
+   asset or giving it back the light ground it was drawn for. This is the
+   second, as a printed chip, because it keeps the artwork untouched.
+
+   The masthead mark is exempt. It is the crowned N alone in white, so it
+   reads on dark as drawn. */
+footer img {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: var(--glass-shadow);
 }
 
 .rule {
@@ -314,7 +350,11 @@ button:active:not(.journey-hud button) {
 .aurora {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
+  /* Heavier blur than the usual 90px. At 58vw across, a tighter blur gives
+     the mass a readable edge, and a readable edge on a background blob is
+     what makes it look like a shape sitting on the page rather than light
+     coming through it. */
+  filter: blur(130px);
   will-change: transform;
 }
 
@@ -368,16 +408,14 @@ button:active:not(.journey-hud button) {
 
 /* ── Sticky CTA clearance ───────────────────────────────────────────────
    StickyCTA floats at the bottom right for the whole page, and the footer is
-   the one block that scrolls all the way under it. Reserving the space here
-   is why the copyright line no longer sits beneath a button. */
-footer {
-  padding-bottom: 6.5rem;
-}
+   the one block that scrolls all the way under it.
 
-@media (min-width: 768px) {
-  footer {
-    padding-bottom: 3rem;
-  }
+   The desktop value was 3rem, on the assumption that the footer row goes
+   horizontal at md and clears the button sideways. It does not: the
+   copyright is right aligned, so it sits directly under it. The clearance is
+   the same at every width because the collision is the same at every width. */
+footer {
+  padding-bottom: 7rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
