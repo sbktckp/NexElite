@@ -48,14 +48,14 @@ function StatItem({
     return (
       <div
         className="flex items-baseline justify-between gap-4 py-4 first:pt-0 last:pb-0"
-        style={{ borderBottom: "1px solid rgba(126,200,227,0.28)" }}
+        style={{ borderBottom: "1px solid var(--rule)" }}
       >
-        <p className="font-tech text-[11px] uppercase tracking-[0.18em] font-bold" style={{ color: "#8aa3b5" }}>
+        <p className="font-tech text-[11px] uppercase tracking-[0.18em] font-bold" style={{ color: "var(--muted)" }}>
           {label}
         </p>
         <p
-          className="font-disp font-extrabold tabular-nums"
-          style={{ fontSize: "clamp(30px, 4.4vw, 46px)", color: "#2F5D7C", letterSpacing: "-0.02em", lineHeight: 1 }}
+          className="figure"
+          style={{ fontSize: "clamp(34px, 5vw, 54px)", fontWeight: 700, color: "var(--ink)", lineHeight: 1 }}
         >
           {count}
           {suffix}
@@ -66,11 +66,11 @@ function StatItem({
 
   return (
     <div className="text-center sm:text-left">
-      <p className="font-disp font-extrabold" style={{ fontSize: "clamp(32px, 6vw, 52px)", color: "#2F5D7C", letterSpacing: "-0.02em" }}>
+      <p className="figure" style={{ fontSize: "clamp(34px, 6vw, 56px)", fontWeight: 700, color: "var(--ink)" }}>
         {count}
         {suffix}
       </p>
-      <p className="text-xs sm:text-sm uppercase tracking-wider mt-1" style={{ color: "#6f8ca3" }}>
+      <p className="text-xs sm:text-sm uppercase tracking-wider mt-1" style={{ color: "var(--muted)" }}>
         {label}
       </p>
     </div>
@@ -99,14 +99,11 @@ export function StatsProof({ stacked = false }: { stacked?: boolean }) {
 
   if (stacked) {
     return (
-      <div
-        ref={ref}
-        className="glass glass-edge lift rounded-2xl px-5 py-5 sm:px-7 sm:py-6 w-full"
-      >
+      <div ref={ref} className="surface lift px-5 py-5 sm:px-7 sm:py-6 w-full">
         {STATS.map((s) => (
           <StatItem key={s.label} {...s} active={active} stacked />
         ))}
-        <p className="text-[11px] leading-relaxed mt-4" style={{ color: "#8aa3b5" }}>
+        <p className="text-[11px] leading-relaxed mt-4" style={{ color: "var(--muted)" }}>
           Counted across every channel we run, since launch.
         </p>
       </div>

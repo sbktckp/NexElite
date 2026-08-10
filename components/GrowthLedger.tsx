@@ -66,43 +66,43 @@ function Row({
   const mult = Math.round((to / from) * 10) / 10;
 
   return (
-    <div className="py-4 first:pt-0 last:pb-0" style={{ borderBottom: "1px solid rgba(126,200,227,0.25)" }}>
+    <div className="py-4 first:pt-0 last:pb-0" style={{ borderBottom: "1px solid var(--rule)" }}>
       <div className="flex items-baseline justify-between gap-3 mb-2.5">
-        <p className="font-disp text-base sm:text-lg font-extrabold" style={{ color: "#2F5D7C" }}>
+        <p className="font-disp text-lg sm:text-xl" style={{ color: "var(--ink)", fontWeight: 700 }}>
           {name}
-          <span className="font-body text-xs font-medium ml-2" style={{ color: "#6f8ca3" }}>
+          <span className="font-body text-xs font-medium ml-2" style={{ color: "var(--muted)" }}>
             {niche}
           </span>
         </p>
         <p
           className="font-tech text-xs font-bold tabular-nums transition-opacity duration-500"
-          style={{ color: "#D9B98A", opacity: done ? 1 : 0 }}
+          style={{ color: "var(--accent-2)", opacity: done ? 1 : 0 }}
         >
           {mult}x in {win}
         </p>
       </div>
 
-      <div className="relative h-3 rounded-full overflow-hidden" style={{ background: "rgba(126,200,227,0.14)" }}>
+      <div className="relative h-3 overflow-hidden" style={{ background: "var(--paper-2)", border: "1px solid var(--rule)" }}>
         {/* Where they started. Stays put so the sweep has a visible origin. */}
         <div
           className="absolute inset-y-0 w-0.5"
-          style={{ left: `${fromPct}%`, background: "rgba(47,93,124,0.45)" }}
+          style={{ left: `${fromPct}%`, background: "var(--rule-strong)" }}
         />
         <div
-          className="ledger-fill absolute inset-y-0 left-0 rounded-full overflow-hidden"
+          className="ledger-fill absolute inset-y-0 left-0"
           style={{
             width: active ? `${toPct}%` : `${fromPct}%`,
-            background: "linear-gradient(90deg, #2F5D7C, #7EC8E3 70%, #D9B98A)",
+            background: "var(--ink)",
             transition: `width ${SWEEP_MS}ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms`,
           }}
         />
       </div>
 
       <div className="flex items-baseline justify-between mt-1.5">
-        <p className="font-tech text-[11px] tabular-nums" style={{ color: "#8aa3b5" }}>
+        <p className="font-tech text-[11px] tabular-nums" style={{ color: "var(--muted)" }}>
           started {fmt(from)}
         </p>
-        <p className="font-tech text-sm font-bold tabular-nums" style={{ color: "#2F5D7C" }}>
+        <p className="figure text-lg" style={{ color: "var(--ink)", fontWeight: 700 }}>
           {fmt(count)} followers
         </p>
       </div>
@@ -131,14 +131,11 @@ export function GrowthLedger() {
   }, []);
 
   return (
-    <div
-      ref={ref}
-      className="glass glass-edge rounded-2xl px-5 py-5 sm:px-7 sm:py-6 w-full"
-    >
+    <div ref={ref} className="surface px-5 py-5 sm:px-7 sm:py-6 w-full">
       {CREATOR_GROWTH.map((c, i) => (
         <Row key={c.name} {...c} active={active} delay={i * 260} />
       ))}
-      <p className="text-xs leading-relaxed mt-4" style={{ color: "#6f8ca3" }}>
+      <p className="text-xs leading-relaxed mt-4" style={{ color: "var(--muted)" }}>
         {ROSTER_NOTE}
       </p>
     </div>
