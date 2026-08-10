@@ -3,18 +3,20 @@
 /* ──────────────────────────────────────────────────────────────────────────
    NexElite Media, landing page
 
-   Signature visual: GlassField, a drifting field of coloured light behind
-   every surface on the page, with the surfaces themselves rendered as
-   glass. The transformation is still noise into signal, now told in the
-   material rather than in a 3D scene: the field is diffuse, the panels
-   that sit on it are sharp and structured.
+   Set as an editorial spread. Warm paper, one ink, one accent, hairline
+   rules, and a high-contrast serif doing the work a background effect used
+   to do. Noise into signal is told by the typography now: the page opens
+   loose and large and tightens into ruled, tabular proof.
 
-   The Three.js corridor that used to live here is gone. It carried roughly
-   700kb for one effect, and it fought the copy for the centre of the
-   viewport at every stage. The glass reads on a mid range phone, which the
-   corridor never really did.
+   This replaces a glass theme, which replaced a Three.js corridor. Both of
+   those put the interest behind the content. This one puts it in the
+   content, which is the version that still works when the copy changes.
 
-   Progress: JourneyHUD, driven by document scroll.
+   Surfaces are requested by role (.surface, .surface-lead, .surface-quiet)
+   and colour by token (var(--ink), var(--accent)). No component knows what
+   the theme looks like, so the next change is app/globals.css alone.
+
+   Progress: JourneyHUD, rendered inside the masthead as its bottom rule.
 
    Journey animations: per stage GSAP choreography (split, grid, cards,
    center).
@@ -30,7 +32,7 @@ import { StatsProof } from "@/components/StatsProof";
 import { StickyCTA } from "@/components/StickyCTA";
 import { ChannelGrid } from "@/components/ChannelGrid";
 import { JourneyHUD } from "@/components/JourneyHUD";
-import { GlassField } from "@/components/GlassField";
+import { PaperGround } from "@/components/PaperGround";
 import { ServicePanel } from "@/components/ServicePanel";
 import { SignalRings } from "@/components/SignalRings";
 
@@ -99,10 +101,10 @@ function Stage({
    * Copy sits on a shared twelve column grid rather than being pushed to
    * whichever edge of a flex row. Two reasons.
    *
-   * The field behind the page is brightest through the middle of the
-   * viewport, so copy flushed to the outer edge of the container sat in the
-   * dimmest part of it. On the grid a left stage and a right stage are
-   * exact mirrors, five columns each, and the middle two stay clear.
+   * PaperGround rules the same twelve columns faintly behind the page, so
+   * copy that sits on the grid lands on those rules instead of floating
+   * between them. On the grid a left stage and a right stage are exact
+   * mirrors, five columns each, and the middle two stay clear.
    *
    * Text stays left aligned in a right hand column. Right aligned body copy
    * gives a ragged left edge, which is measurably harder to read, and the
@@ -137,21 +139,15 @@ function Stage({
         className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-12 gap-x-6 items-center"
       >
         <div className={colCls}>
-          {kicker && (
-            <p
-              className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4"
-              style={{ color: "#2F5D7C" }}
-            >
-              {kicker}
-            </p>
-          )}
+          {kicker && <p className="kicker mb-5">{kicker}</p>}
           <h2
-            className="font-disp font-extrabold mb-5"
+            className="font-disp mb-5"
             style={{
               fontSize: "clamp(28px, 8vw, 52px)",
+              fontWeight: 700,
               letterSpacing: "-0.025em",
-              lineHeight: 1.08,
-              color: "#2F5D7C",
+              lineHeight: 1.06,
+              color: "var(--ink)",
             }}
           >
             {title}
@@ -176,8 +172,8 @@ export default function Home() {
     // Everything that scrolls programmatically goes through Lenis from here,
     // so nothing ever races it with a native smooth scroll.
     const unregisterScroller = registerScroller(lenis);
-    // Lenis subscribes first so scroll is settled before the field and the
-    // HUD, which subscribe on mount, read it in the same frame.
+    // Lenis subscribes first so scroll is settled before the masthead rail,
+    // which subscribes on mount, reads it in the same frame.
     const offFrame = onFrame((time) => lenis.raf(time));
     lenis.on("scroll", ScrollTrigger.update);
 
@@ -255,44 +251,11 @@ export default function Home() {
       );
     });
 
-    /**
-     * Drives the field's directional light.
-     *
-     * GlassField's top layer is bright in the middle and clear at the edges.
-     * Each stage declares which side its copy sits on, and the bright window
-     * slides the other way as that stage comes into view, so the copy is
-     * always sitting against the calmer half of the field.
-     *
-     * Written as a CSS variable rather than React state because it changes on
-     * scroll and must never trigger a render. The .scrim class transitions
-     * the resulting transform itself, so this is a single property write.
-     */
-    const SHIFT = { left: "15vw", right: "-15vw", center: "0px" } as const;
-    function applySide(el: HTMLElement) {
-      const side = (el.dataset.side || "center") as keyof typeof SHIFT;
-      document.documentElement.style.setProperty(
-        "--scrim-shift",
-        SHIFT[side] ?? "0px"
-      );
-    }
-
-    const sideTriggers = copies.map((el) =>
-      ScrollTrigger.create({
-        trigger: el,
-        start: "top 65%",
-        end: "bottom 35%",
-        onEnter: () => applySide(el),
-        onEnterBack: () => applySide(el),
-      })
-    );
-
     return () => {
       offFrame();
       unregisterScroller();
       lenis.destroy();
       st.kill();
-      sideTriggers.forEach((t) => t.kill());
-      document.documentElement.style.removeProperty("--scrim-shift");
       copyTriggers.forEach((t) => {
         t.scrollTrigger?.kill();
         t.kill();
@@ -304,71 +267,86 @@ export default function Home() {
     <div
       ref={mainRef}
       className="relative"
-      style={{ background: "#ffffff", color: "#2F5D7C", paddingBottom: "112px" }}
+      style={{ background: "var(--paper)", color: "var(--ink)" }}
     >
-      <GlassField />
-      <JourneyHUD />
+      <PaperGround />
       <StickyCTA />
       <ServicePanel service={selectedService} onClose={() => setSelectedService(null)} />
 
-      <header className="fixed top-0 inset-x-0 px-3 sm:px-6 py-3 sm:py-4" style={{ zIndex: 10 }}>
-        <div className="glass-thick glass-edge max-w-6xl mx-auto flex items-center justify-between rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3">
-          <span className="font-tech text-sm font-bold tracking-tight whitespace-nowrap" style={{ color: "#2F5D7C" }}>
-            NEX<span style={{ color: "#7EC8E3" }}>ELITE</span>
+      {/* Masthead. A newspaper does not float its nameplate in a card, it
+          rules it off from the page. So: a full width paper band, and the
+          hairline that closes it is the reading-position rail rendered by
+          JourneyHUD. One object doing both jobs, which is why the page no
+          longer carries chrome at two opposite edges. */}
+      <header
+        className="fixed top-0 inset-x-0 pb-px"
+        style={{ zIndex: 10, background: "var(--paper)" }}
+      >
+        <div className="max-w-6xl mx-auto flex items-center justify-between px-5 sm:px-6 py-3 sm:py-3.5">
+          <span
+            className="font-disp text-lg sm:text-xl whitespace-nowrap"
+            style={{ color: "var(--ink)", fontWeight: 700, letterSpacing: "0.01em" }}
+          >
+            NexElite<span style={{ color: "var(--accent)" }}>.</span>
           </span>
           <a
             href="mailto:nexelitemedia@gmail.com"
-            className="text-xs sm:text-sm font-bold px-4 py-2 sm:py-1.5 rounded-lg transition-all duration-[240ms] hover:-translate-y-px whitespace-nowrap"
-            style={{ background: "#7EC8E3", color: "#09121c", boxShadow: "0 0 20px -4px #7EC8E3" }}
+            className="link-underline font-tech text-[11px] sm:text-xs font-bold uppercase tracking-[0.18em] whitespace-nowrap"
+            style={{ color: "var(--ink)" }}
           >
             Get in touch
           </a>
         </div>
+        <JourneyHUD />
       </header>
 
       <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 pt-28 sm:pt-32" style={{ zIndex: 2 }}>
         <div data-motion="split" data-side="left" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div className="max-w-xl motion-left">
             <div
-              className="glass-thin inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium mb-7 sm:mb-9"
-              style={{ color: "#2F5D7C" }}
+              className="surface-quiet inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium mb-7 sm:mb-9"
+              style={{ color: "var(--ink)" }}
             >
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#7EC8E3" }} />
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "var(--accent)" }} />
               <span className="font-tech tracking-wider whitespace-nowrap">40M+ views delivered</span>
             </div>
             <h1
-              className="font-disp font-extrabold leading-[0.95] mb-6 sm:mb-7"
-              style={{ fontSize: "clamp(40px, 9vw, 86px)", letterSpacing: "-0.035em", color: "#2F5D7C" }}
+              className="font-disp mb-6 sm:mb-7"
+              style={{
+                fontSize: "clamp(40px, 9vw, 92px)",
+                fontWeight: 700,
+                letterSpacing: "-0.035em",
+                lineHeight: 0.94,
+                color: "var(--ink)",
+              }}
             >
               Every channel
               <br />
               starts as{" "}
-              <span
-                style={{
-                  background: "linear-gradient(100deg, #2F5D7C 5%, #7EC8E3 60%, #D9B98A 95%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
+              {/* The one italic on the page. In a serif setting an italic is
+                  a stronger emphasis than any colour or weight change, which
+                  is why the accent is allowed to appear here and almost
+                  nowhere else. */}
+              <span style={{ fontStyle: "italic", fontWeight: 400, color: "var(--accent)" }}>
                 noise.
               </span>
             </h1>
-            <p className="text-lg sm:text-xl mb-9 sm:mb-11 leading-relaxed" style={{ color: "#4d6577", maxWidth: "480px" }}>
+            <p className="text-lg sm:text-xl mb-9 sm:mb-11 leading-relaxed" style={{ color: "var(--body)", maxWidth: "var(--measure)" }}>
               We tune it into signal. Reels, campaigns, and brand content that
               people actually stop to watch.
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <a
                 href="#proof"
-                className="flex items-center justify-center gap-1.5 text-sm font-bold px-7 py-3.5 rounded-xl transition-all duration-[240ms] hover:-translate-y-0.5 whitespace-nowrap"
-                style={{ background: "#2F5D7C", color: "#ffffff", boxShadow: "0 12px 28px -10px rgba(47,93,124,0.7)" }}
+                className="flex items-center justify-center gap-1.5 text-sm font-bold px-7 py-3.5 transition-colors duration-[240ms] whitespace-nowrap"
+                style={{ background: "var(--ink)", color: "var(--paper)" }}
               >
                 See the numbers <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
               </a>
               <a
                 href="mailto:nexelitemedia@gmail.com"
-                className="glass glass-edge text-sm font-semibold text-center px-7 py-3.5 rounded-xl transition-all duration-[120ms] whitespace-nowrap"
-                style={{ color: "#2F5D7C" }}
+                className="surface text-sm font-semibold text-center px-7 py-3.5 transition-all duration-[120ms] whitespace-nowrap"
+                style={{ color: "var(--ink)" }}
               >
                 Start a project
               </a>
@@ -380,10 +358,10 @@ export default function Home() {
         </div>
         <div
           className="absolute bottom-24 left-1/2 -translate-x-1/2 hidden min-[400px]:flex flex-col items-center gap-2"
-          style={{ color: "rgba(47,93,124,0.45)" }}
+          style={{ color: "rgba(23,20,15,0.25)" }}
         >
           <span className="font-tech text-[10px] uppercase tracking-[0.25em] font-bold whitespace-nowrap">Scroll to tune</span>
-          <div className="w-px h-9 animate-pulse" style={{ background: "linear-gradient(180deg, rgba(47,93,124,0.45), transparent)" }} />
+          <div className="w-px h-9 animate-pulse" style={{ background: "linear-gradient(180deg, rgba(23,20,15,0.25), transparent)" }} />
         </div>
       </section>
 
@@ -391,19 +369,17 @@ export default function Home() {
 
       <section id="channels" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
         <div data-motion="center" data-side="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
-          <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
-            Signal acquired
-          </p>
+          <p className="kicker mb-5">Signal acquired</p>
           <h2
-            className="font-disp font-extrabold mb-5"
-            style={{ fontSize: "clamp(30px, 7vw, 58px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
+            className="font-disp mb-5"
+            style={{ fontSize: "clamp(30px, 7vw, 62px)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.02, color: "var(--ink)" }}
           >
             Eight channels.
             <br />
             One frequency.
           </h2>
-          <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "#4d6577" }}>
-            Tap a channel, or use the bar at the bottom, to see what it delivers.
+          <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "var(--body)" }}>
+            Tap a channel, or use the rule under the masthead, to see what it delivers.
           </p>
         </div>
         <div data-motion="grid" data-side="center" className="stage-copy w-full">
@@ -415,24 +391,22 @@ export default function Home() {
       <section id="growth" className="relative min-h-[100svh] flex items-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
         <div data-motion="split" data-side="left" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           <div className="max-w-md lg:col-span-5 motion-left">
-            <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
-              Creators, tuned
-            </p>
+            <p className="kicker mb-5">Creators, tuned</p>
             <h2
-              className="font-disp font-extrabold mb-5"
-              style={{ fontSize: "clamp(30px, 7vw, 54px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
+              className="font-disp mb-5"
+              style={{ fontSize: "clamp(30px, 7vw, 56px)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.02, color: "var(--ink)" }}
             >
               We don&apos;t promise reach.
               <br />
               We log it.
             </h2>
-            <p className="text-base sm:text-lg leading-relaxed" style={{ color: "#4d6577" }}>
+            <p className="text-base sm:text-lg leading-relaxed" style={{ color: "var(--body)" }}>
               Three creators, three starting points, one method. Every bar below
               is on the same scale, so the distances are real.
             </p>
           </div>
           <div className="lg:col-span-7 motion-right">
-            <div className="lift rounded-2xl"><GrowthLedger /></div>
+            <div className="lift"><GrowthLedger /></div>
           </div>
         </div>
       </section>
@@ -440,18 +414,16 @@ export default function Home() {
       {/* Client impact: the five real engagements. */}
       <section id="impact" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
         <div data-motion="center" data-side="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-14">
-          <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
-            Our impact
-          </p>
+          <p className="kicker mb-5">Our impact</p>
           <h2
-            className="font-disp font-extrabold mb-5"
-            style={{ fontSize: "clamp(30px, 7vw, 58px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
+            className="font-disp mb-5"
+            style={{ fontSize: "clamp(30px, 7vw, 62px)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.02, color: "var(--ink)" }}
           >
             Brands we&apos;ve
             <br />
             tuned to signal.
           </h2>
-          <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "#4d6577" }}>
+          <p className="text-base sm:text-lg max-w-md mx-auto" style={{ color: "var(--body)" }}>
             Skincare, healthcare, and education. Different channels, same method.
           </p>
         </div>
@@ -463,12 +435,10 @@ export default function Home() {
       {CASE_STUDIES.length > 0 && (
         <section id="work" className="relative min-h-[100svh] flex flex-col items-center justify-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
           <div data-motion="center" data-side="center" className="stage-copy max-w-6xl mx-auto w-full text-center mb-12 sm:mb-16">
-            <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
-              Receipts
-            </p>
+            <p className="kicker mb-5">Receipts</p>
             <h2
-              className="font-disp font-extrabold mb-5"
-              style={{ fontSize: "clamp(30px, 7vw, 58px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
+              className="font-disp mb-5"
+              style={{ fontSize: "clamp(30px, 7vw, 62px)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.02, color: "var(--ink)" }}
             >
               The work behind
               <br />
@@ -484,26 +454,24 @@ export default function Home() {
       <section className="relative min-h-[100svh] flex items-center px-5 sm:px-6 py-24 sm:py-20" style={{ zIndex: 2 }}>
         <div data-motion="split" data-side="left" className="stage-copy max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-10 items-center">
           <div className="max-w-md order-2 lg:order-1 motion-left">
-            <p className="font-tech text-xs font-bold uppercase tracking-[0.22em] mb-4" style={{ color: "#2F5D7C" }}>
-              In focus
-            </p>
+            <p className="kicker mb-5">In focus</p>
             <h2
-              className="font-disp font-extrabold mb-5"
-              style={{ fontSize: "clamp(30px, 7vw, 54px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
+              className="font-disp mb-5"
+              style={{ fontSize: "clamp(30px, 7vw, 56px)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.02, color: "var(--ink)" }}
             >
               Shot with intent.
               <br />
               Edited with taste.
             </h2>
-            <p className="text-base sm:text-lg leading-relaxed mb-7" style={{ color: "#4d6577" }}>
+            <p className="text-base sm:text-lg leading-relaxed mb-7" style={{ color: "var(--body)" }}>
               Not a stock template dressed up as a brand. Every frame is composed for what your audience actually stops scrolling for.
             </p>
             <div className="flex flex-wrap gap-2">
               {["Location scouted", "Lit properly", "Graded to brand"].map((chip) => (
                 <span
                   key={chip}
-                  className="glass-thin px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
-                  style={{ color: "#2F5D7C" }}
+                  className="surface-quiet px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap"
+                  style={{ color: "var(--ink)" }}
                 >
                   {chip}
                 </span>
@@ -525,7 +493,7 @@ export default function Home() {
         aside={<StatsProof stacked />}
       >
         <div className="motion-left">
-          <p className="text-base sm:text-lg leading-relaxed" style={{ color: "#4d6577" }}>
+          <p className="text-base sm:text-lg leading-relaxed" style={{ color: "var(--body)" }}>
             We&apos;d rather show you than tell you. Every figure here is
             counted, not estimated, and we will walk you through any of them.
           </p>
@@ -535,17 +503,14 @@ export default function Home() {
       <Stage motion="grid" align="center" width="wide" kicker="How it runs" title={<>Five steps.<br />No mystery.</>}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-4 w-full">
           {PROCESS.map((step, i) => (
-            <div
-              key={step.name}
-              className="glass glass-edge motion-tile rounded-2xl px-4 py-5 text-left"
-            >
-              <p className="font-tech text-[10px] font-bold tracking-[0.22em] mb-2" style={{ color: "#7EC8E3" }}>
+            <div key={step.name} className="surface motion-tile px-4 py-5 text-left">
+              <p className="font-tech text-[10px] font-bold tracking-[0.22em] mb-2" style={{ color: "var(--accent)" }}>
                 0{i + 1}
               </p>
-              <p className="font-disp text-base font-extrabold mb-1" style={{ color: "#2F5D7C" }}>
+              <p className="font-disp text-lg mb-1" style={{ color: "var(--ink)", fontWeight: 700 }}>
                 {step.name}
               </p>
-              <p className="text-xs leading-relaxed" style={{ color: "#4d6577" }}>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--body)" }}>
                 {step.note}
               </p>
             </div>
@@ -560,12 +525,12 @@ export default function Home() {
         title={<>Paced for attention.<br />Built to retain.</>}
         aside={<CutCadence />}
       >
-        <p className="text-base sm:text-lg leading-relaxed mb-7 motion-left" style={{ color: "#4d6577" }}>
+        <p className="text-base sm:text-lg leading-relaxed mb-7 motion-left" style={{ color: "var(--body)" }}>
           Cuts land on the beat. Captions arrive on time. Nothing overstays its welcome.
         </p>
-        <div className="glass glass-edge glass-cyan lift motion-left inline-flex flex-col gap-1 px-6 py-5 rounded-2xl text-left">
-          <p className="font-disp text-xl font-extrabold" style={{ color: "#2F5D7C" }}>Retention-first editing</p>
-          <p className="text-sm" style={{ color: "#4d6577" }}>Every cut earns the next three seconds</p>
+        <div className="surface surface-accent lift motion-left inline-flex flex-col gap-1 px-6 py-5 text-left">
+          <p className="font-disp text-xl" style={{ color: "var(--ink)", fontWeight: 700 }}>Retention-first editing</p>
+          <p className="text-sm" style={{ color: "var(--body)" }}>Every cut earns the next three seconds</p>
         </div>
       </Stage>
 
@@ -575,18 +540,18 @@ export default function Home() {
       >
         <div data-motion="center" data-side="center" className="stage-copy max-w-xl mx-auto">
           <h2
-            className="font-disp font-extrabold mb-5"
-            style={{ fontSize: "clamp(34px, 8vw, 62px)", letterSpacing: "-0.03em", lineHeight: 1.05, color: "#2F5D7C" }}
+            className="font-disp mb-5"
+            style={{ fontSize: "clamp(34px, 8vw, 68px)", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.02, color: "var(--ink)" }}
           >
             Ready to go on air?
           </h2>
-          <p className="mb-11 text-lg sm:text-xl" style={{ color: "#4d6577" }}>
+          <p className="mb-11 text-lg sm:text-xl" style={{ color: "var(--body)" }}>
             Tell us what you&apos;re building. We&apos;ll tell you how it looks in motion.
           </p>
           <a
             href="mailto:nexelitemedia@gmail.com"
-            className="inline-flex items-center gap-2 font-bold px-10 py-4 rounded-xl text-sm sm:text-base transition-all duration-[240ms] hover:-translate-y-0.5 whitespace-nowrap"
-            style={{ background: "#2F5D7C", color: "#ffffff", boxShadow: "0 16px 36px -12px rgba(47,93,124,0.75)" }}
+            className="inline-flex items-center gap-2 font-bold px-10 py-4 text-sm sm:text-base transition-colors duration-[240ms] whitespace-nowrap"
+            style={{ background: "var(--ink)", color: "var(--paper)" }}
           >
             nexelitemedia@gmail.com <ArrowUpRight className="w-4 h-4 flex-shrink-0" />
           </a>
@@ -594,19 +559,20 @@ export default function Home() {
       </section>
 
       <footer
-        className="glass-thick relative px-6 py-12"
+        className="relative px-5 sm:px-6 py-12"
         style={{
           zIndex: 2,
-          border: "none",
-          borderTop: "1px solid rgba(255,255,255,0.7)",
-          borderRadius: 0,
+          background: "var(--paper)",
+          borderTop: "2px solid var(--ink)",
         }}
       >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between gap-4">
-          <span className="font-tech text-sm font-bold" style={{ color: "#2F5D7C" }}>
-            NEX<span style={{ color: "#7EC8E3" }}>ELITE</span>
+          <span className="font-disp text-lg" style={{ color: "var(--ink)", fontWeight: 700 }}>
+            NexElite<span style={{ color: "var(--accent)" }}>.</span>
           </span>
-          <p className="text-sm text-center" style={{ color: "#4d6577" }}>© 2026 NexElite Media</p>
+          <p className="font-tech text-[11px] tracking-[0.16em] uppercase text-center" style={{ color: "var(--muted)" }}>
+            © 2026 NexElite Media
+          </p>
         </div>
       </footer>
     </div>
