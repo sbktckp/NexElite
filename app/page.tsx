@@ -23,6 +23,7 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -283,12 +284,26 @@ export default function Home() {
         style={{ zIndex: 10, background: "var(--paper)" }}
       >
         <div className="max-w-6xl mx-auto flex items-center justify-between px-5 sm:px-6 py-3 sm:py-3.5">
-          <span
-            className="font-disp text-lg sm:text-xl whitespace-nowrap"
-            style={{ color: "var(--ink)", fontWeight: 700, letterSpacing: "0.01em" }}
-          >
-            NexElite<span style={{ color: "var(--accent)" }}>.</span>
-          </span>
+          {/* Nameplate: the crowned N from the logo, then the set wordmark.
+              The full lockup carries a tagline and a rule under it, neither
+              of which survives at masthead height, so only the mark comes
+              across and the serif keeps saying the name. */}
+          <a href="/" aria-label="NexElite Media, home" className="flex items-center gap-2.5">
+            <Image
+              src="/mark.png"
+              alt=""
+              width={186}
+              height={256}
+              priority
+              className="h-7 sm:h-8 w-auto"
+            />
+            <span
+              className="font-disp text-lg sm:text-xl whitespace-nowrap"
+              style={{ color: "var(--ink)", fontWeight: 700, letterSpacing: "0.01em" }}
+            >
+              NexElite<span style={{ color: "var(--accent)" }}>.</span>
+            </span>
+          </a>
           <a
             href="mailto:nexelitemedia@gmail.com"
             className="link-underline font-tech text-[11px] sm:text-xs font-bold uppercase tracking-[0.18em] whitespace-nowrap"
@@ -567,9 +582,15 @@ export default function Home() {
         }}
       >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between gap-4">
-          <span className="font-disp text-lg" style={{ color: "var(--ink)", fontWeight: 700 }}>
-            NexElite<span style={{ color: "var(--accent)" }}>.</span>
-          </span>
+          {/* The footer is the one place with room for the full lockup, so
+              the tagline and the brush mark get to appear once. */}
+          <Image
+            src="/logo.png"
+            alt="NexElite Media"
+            width={700}
+            height={563}
+            className="h-14 sm:h-16 w-auto"
+          />
           <p className="font-tech text-[11px] tracking-[0.16em] uppercase text-center" style={{ color: "var(--muted)" }}>
             © 2026 NexElite Media
           </p>
