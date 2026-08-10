@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SERVICES } from "@/lib/services";
-import { gateFraction } from "@/lib/journey";
 import { onFrame } from "@/lib/frame";
 import { scrollFraction, scrollToFraction } from "@/lib/scroll";
 
@@ -11,167 +9,161 @@ import { scrollFraction, scrollToFraction } from "@/lib/scroll";
  *
  * The reading position, set as the masthead's own bottom rule.
  *
- * It used to be a floating card at the bottom of the viewport, which meant
- * the page carried two persistent chrome elements at opposite edges and the
- * rule under the masthead was doing nothing. Now they are one object: the
- * hairline that closes the masthead IS the progress bar, filling with ink
- * as you read and ticked into eight segments, one per channel. Nothing
- * floats and nothing is added to the layout, which is why it reads as part
- * of the page rather than as an overlay on it.
+ * It used to be eight anonymous ticks: a radar that told you where you were
+ * in a sequence you could not name. Ticks are only legible if you already
+ * know what the segments are, which is exactly the thing a first time
+ * visitor does not. So it is now a chapter rail. The segments carry the
+ * section names, they are real navigation, and the fill still reads as
+ * progress.
  *
- * Rendered inside <header> in app/page.tsx. It positions itself against
- * that header, so it must not be mounted anywhere else.
+ * Rendered inside <header> in app/page.tsx. It positions itself against that
+ * header, so it must not be mounted anywhere else.
  *
  * ── Why this reads smooth ──────────────────────────────────────────────
- * Split by rate of change. Continuous values, progress and ignition, are
- * written to CSS custom properties on the container every frame and consumed
- * by calc() in the styles below, so they move at display rate and cost no
- * renders at all. Discrete values, which gate you are at and the rounded
- * percentage, still use state but only set when they actually change.
+ * Split by rate of change. The continuous value, progress, is written to a
+ * CSS custom property every frame and consumed by transform, so it moves at
+ * display rate and costs no renders at all. The discrete values, active
+ * chapter and rounded percentage, use state but are only set when they
+ * actually change.
  *
  * It subscribes to the shared frame bus rather than running its own rAF, so
  * it samples scroll in the same frame Lenis settles it.
  */
 
-const SAMPLE_MS = 80;
+const CHAPTERS = [
+  { id: "channels", label: "Channels" },
+  { id: "growth", label: "Growth" },
+  { id: "impact", label: "Impact" },
+  { id: "plans", label: "Plans" },
+  { id: "creators", label: "Creators" },
+  { id: "audit", label: "Audit" },
+];
+
+const SAMPLE_MS = 90;
+
+/** Where a section sits as a fraction of the whole scrollable page. */
+function fractionOf(id: string): number | null {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  if (max <= 0) return 0;
+  return Math.min(1, Math.max(0, (el.getBoundingClientRect().top + window.scrollY) / max));
+}
 
 export function JourneyHUD() {
-  const N = SERVICES.length;
   const rootRef = useRef<HTMLDivElement>(null);
-  const [gate, setGate] = useState(0);
+  const [active, setActive] = useState(0);
   const [pct, setPct] = useState(0);
 
   // Mirrors of the state above, so the frame loop can compare without
   // closing over stale values or re-subscribing on every change.
-  const gateRef = useRef(0);
+  const activeRef = useRef(0);
   const pctRef = useRef(0);
   const lastRef = useRef(0);
 
+  // Section offsets are measured on mount and on resize rather than per
+  // frame. getBoundingClientRect inside a scroll loop is the classic way to
+  // make a smooth page stutter.
+  const marksRef = useRef<number[]>([]);
+
   useEffect(() => {
-    return onFrame((now) => {
+    const measure = () => {
+      marksRef.current = CHAPTERS.map((c) => fractionOf(c.id) ?? 1);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    // Fonts and images settle after first paint and move every offset, so
+    // one late remeasure saves the rail from being wrong for a whole session.
+    const t = window.setTimeout(measure, 900);
+
+    const off = onFrame((now) => {
       const root = rootRef.current;
       if (!root) return;
 
-      const progress = scrollFraction();
-      const scaled = progress * N;
-      const nextGate = Math.min(N - 1, Math.floor(scaled));
+      const p = scrollFraction();
+      root.style.setProperty("--p", p.toFixed(4));
 
-      // Peaks at the centre of each segment, so the active tick thickens as
-      // you pass through it rather than snapping at the boundary.
-      const ignite = 1 - Math.abs((scaled % 1) - 0.5) * 2;
-
-      // Continuous, every frame, zero renders.
-      root.style.setProperty("--p", progress.toFixed(4));
-      root.style.setProperty("--ig", ignite.toFixed(3));
-
-      // Discrete, throttled, and only when the value actually moved.
       if (now - lastRef.current < SAMPLE_MS) return;
       lastRef.current = now;
 
-      if (nextGate !== gateRef.current) {
-        gateRef.current = nextGate;
-        setGate(nextGate);
+      let next = 0;
+      marksRef.current.forEach((m, i) => {
+        if (p >= m - 0.02) next = i;
+      });
+      if (next !== activeRef.current) {
+        activeRef.current = next;
+        setActive(next);
       }
-      const nextPct = Math.round(progress * 100);
-      if (nextPct !== pctRef.current) {
-        pctRef.current = nextPct;
-        setPct(nextPct);
+
+      const np = Math.round(p * 100);
+      if (np !== pctRef.current) {
+        pctRef.current = np;
+        setPct(np);
       }
     });
-  }, [N]);
 
-  const svc = SERVICES[gate];
+    return () => {
+      off();
+      window.clearTimeout(t);
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
 
   return (
     <div
       ref={rootRef}
       className="journey-hud absolute inset-x-0 bottom-0"
-      style={{ ["--p" as string]: "0", ["--ig" as string]: "0" }}
+      style={{ ["--p" as string]: "0" }}
     >
-      {/*
-        The rule itself. Two layers: the full-width hairline that the
-        masthead needs anyway, and the ink fill scaled across it. Scaling a
-        single element beats animating eight widths, and transform is the
-        one property that never costs layout.
-      */}
+      {/* The rule itself. Two layers: the hairline the masthead needs anyway,
+          and the fill scaled across it. Scaling one element beats animating
+          six widths, and transform never costs layout. */}
       <div className="relative h-px w-full" style={{ background: "var(--rule)" }}>
         <div
           className="absolute inset-y-0 left-0 w-full origin-left"
           style={{
-            background: "var(--ink)",
+            background:
+              "linear-gradient(90deg, var(--accent-3), var(--accent-2), var(--accent))",
             transform: "scaleX(var(--p))",
+            boxShadow: "0 0 10px rgba(53,208,216,0.5)",
           }}
         />
-
-        {/*
-          Channel ticks, sitting on the rule. Each is a click target the
-          full height of the header strip below it, so they are reachable
-          without being visible chrome: the visible part is a 1px mark.
-        */}
-        <div className="absolute inset-x-0 -top-2 flex h-4">
-          {SERVICES.map((s, i) => {
-            const active = i === gate;
-            return (
-              <button
-                key={s.id}
-                onClick={() => scrollToFraction(gateFraction(i, N))}
-                title={s.name}
-                aria-label={`Go to ${s.name}`}
-                aria-current={active ? "step" : undefined}
-                className="relative flex-1 focus-visible:outline-2 focus-visible:outline-offset-2"
-              >
-                {/* The mark. Hidden on the first tick, which would otherwise
-                    print a stray rule against the left margin. */}
-                {i > 0 && (
-                  <span
-                    className="absolute left-0 bottom-0 w-px"
-                    style={{
-                      // Passed segments mark in ink, ahead of you in rule.
-                      background: i <= gate ? "var(--ink)" : "var(--rule-strong)",
-                      // The tick you are inside grows as you cross it.
-                      height: active ? "calc(5px + var(--ig) * 5px)" : "4px",
-                    }}
-                  />
-                )}
-                {active && (
-                  <span
-                    className="absolute bottom-0 left-0 right-0"
-                    style={{
-                      height: "2px",
-                      background: s.tone,
-                    }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      {/*
-        Running head. Set like the folio line of a magazine: section name on
-        the left, position on the right, hairline rule above. Collapsed to
-        nothing until you hover the masthead, so at rest the page shows only
-        the filled rule and the reader is never told what they can already
-        see.
-      */}
+      {/* Running head. Collapsed until the masthead is hovered, so at rest the
+          page shows only the filled rule and the reader is never told what
+          they can already see. */}
       <div
         className="hud-drawer"
-        style={{ background: "var(--paper)", borderBottom: "1px solid var(--rule)" }}
+        style={{ background: "rgba(10,13,24,0.72)", borderBottom: "1px solid var(--rule)" }}
       >
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 flex items-baseline justify-between gap-6 pb-2">
-          <p className="text-[12px] sm:text-[13px] leading-snug" style={{ color: "var(--body)" }}>
-            <span className="font-semibold" style={{ color: "var(--ink)" }}>
-              {svc.name}.
-            </span>{" "}
-            <span className="hidden sm:inline">{svc.description}</span>
-          </p>
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 flex items-center justify-between gap-4 pb-2">
+          <nav className="flex items-center gap-1 overflow-x-auto" aria-label="Sections">
+            {CHAPTERS.map((c, i) => {
+              const on = i === active;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => {
+                    const f = fractionOf(c.id);
+                    if (f !== null) scrollToFraction(f);
+                  }}
+                  aria-current={on ? "true" : undefined}
+                  className="font-tech text-[10px] sm:text-[11px] uppercase tracking-[0.16em] px-2.5 py-1 whitespace-nowrap rounded-full transition-colors"
+                  style={{
+                    color: on ? "var(--ink)" : "var(--muted)",
+                    background: on ? "rgba(255,255,255,0.09)" : "transparent",
+                  }}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </nav>
           <p
             className="font-tech text-[10px] sm:text-[11px] shrink-0 tabular-nums tracking-[0.16em]"
             style={{ color: "var(--muted)" }}
           >
-            {String(gate + 1).padStart(2, "0")}/{String(N).padStart(2, "0")}
-            <span style={{ color: "var(--rule-strong)" }}> · </span>
             {pct}%
           </p>
         </div>

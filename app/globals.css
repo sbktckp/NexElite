@@ -1,51 +1,37 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────────────────────────────────
-   NexElite Media, editorial print theme
+   NexElite Media, glass theme
 
-   The whole site is set like a printed annual: warm paper, one ink, one
-   accent, hairline rules, and typography doing the work that a background
-   effect used to do. Nothing blurs, nothing floats, nothing glows.
-
-   Two rules kept this coherent while it was being built:
-
-     1. Surfaces are named by role, never by material. Components ask for
-        .surface, .surface-lead, .surface-quiet. Retheming the entire site
-        is then a change to this file alone, which is exactly why the last
-        theme swap touched fourteen components and this one need not.
-     2. Colour lives in the tokens below and nowhere else. Components carry
-        var(--ink), var(--accent) and so on, no hex literals.
+   Surfaces are named by role (.surface, .surface-quiet, .surface-lead) and
+   colour lives only in the tokens below, so the next theme swap is this
+   file alone. Dark base, three accents, real depth.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Paper. Warm, never pure white; pure white on a screen reads as a blank
-     document rather than as stock. */
-  --paper: #fbf8f3;
-  --paper-2: #f2ece1;
+  --paper: #0a0d18;
+  --paper-2: rgba(255, 255, 255, 0.055);
 
-  /* Ink. Near black with warmth in it, so it sits on the paper instead of
-     punching a hole through it. */
-  --ink: #17140f;
-  --body: #4a443c;
-  --muted: #8a8177;
+  --ink: #f4f6fd;
+  --body: rgba(244, 246, 253, 0.68);
+  --muted: rgba(244, 246, 253, 0.42);
 
-  /* One accent, used sparingly: kickers, rules that need emphasis, the
-     leading edge of a data bar. A second earth tone backs it up. */
-  --accent: #b23a21;
-  --accent-2: #8a7a5c;
+  --accent: #ff5a3c;
+  --accent-2: #35d0d8;
+  --accent-3: #8b7cff;
 
-  /* Hairlines. Two weights only, and the heavier one is still 1px. */
-  --rule: rgba(23, 20, 15, 0.14);
-  --rule-strong: rgba(23, 20, 15, 0.32);
+  --rule: rgba(255, 255, 255, 0.11);
+  --rule-strong: rgba(255, 255, 255, 0.26);
 
-  /* The measure. Long-form copy never exceeds this. */
+  --glass-blur: 18px;
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.36);
+  --r: 16px;
   --measure: 34rem;
 }
 
 /* NOTE: do NOT add a global `* { margin:0; padding:0 }` reset here.
    In Tailwind v4 it outranks utility classes like mx-auto / px-6 and
-   silently breaks every spacing and centering utility site-wide.
-   Tailwind's own preflight already handles the reset. */
+   silently breaks every spacing and centering utility site-wide. */
 
 html,
 body {
@@ -61,12 +47,10 @@ body {
 }
 
 ::selection {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--accent);
+  color: #fff;
 }
 
-/* Display face is a serif with real contrast, set tight and large. That
-   single choice carries most of the theme; everything else is restraint. */
 .font-disp {
   font-family: var(--font-disp), ui-serif, Georgia, serif;
   font-weight: 600;
@@ -77,69 +61,82 @@ body {
   font-family: var(--font-mono), ui-monospace, monospace;
 }
 
-/* Paper grain. A printed page is never flat, and the difference between
-   this at 3% and nothing at all is the difference between stock and a
-   blank div. Fixed, so it does not scroll with the content, exactly as
-   the texture of a sheet does not move under the ink. */
 .tex::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.035;
+  opacity: 0.05;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 
-/* ── Surfaces ───────────────────────────────────────────────────────────────────
-   A card in print is not a raised object. It is an area fenced by a rule.
-   So: no shadow, no blur, no radius. The only variables are how much the
-   fill differs from the paper and how heavy the fence is. */
+/* ── Surfaces ───────────────────────────────────────────────────────────────
+   Frosted panes. The only variables are tint depth and border weight. */
 
 .surface {
   position: relative;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.045);
   border: 1px solid var(--rule);
+  border-radius: var(--r);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  box-shadow: var(--glass-shadow);
 }
 
-/* Where a block needs to read as set apart from the page rather than
-   simply enclosed by it: a tint, still no shadow. */
 .surface-quiet {
   position: relative;
   background: var(--paper-2);
   border: 1px solid var(--rule);
+  border-radius: 999px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-/* The lead surface, for anything that floats above the page and must stay
-   legible over whatever scrolls beneath: header, HUD, sticky CTA, footer.
-   This is the one place the paper goes opaque, because a transparent
-   floating bar over moving type is unreadable at any tint. */
+/* Floating chrome: heavier tint so type stays legible over moving content. */
 .surface-lead {
   position: relative;
-  background: var(--paper);
-  border: 1px solid var(--rule-strong);
+  background: rgba(10, 13, 24, 0.62);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: var(--glass-shadow);
 }
 
-/* Accent surface: the accent as a top rule rather than as a fill. A block
-   of colour would shout; a 2px rule at the top of the box says the same
-   thing at conversational volume. */
 .surface-accent {
   border-top: 2px solid var(--accent);
 }
 
-/* ── Rules and kickers ───────────────────────────────────────────────────────────
-   The two typographic devices the whole layout leans on. */
+/* Masthead. Full bleed, so no radius, but the same pane material. */
+.glass-bar {
+  background: rgba(10, 13, 24, 0.68);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border-bottom: 1px solid var(--rule);
+}
+
+/* The specular top edge. One line, and it is what separates real glass from
+   a translucent div. */
+.surface::before,
+.surface-lead::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  pointer-events: none;
+}
 
 .rule {
   border-top: 1px solid var(--rule);
 }
 
 .rule-heavy {
-  border-top: 2px solid var(--ink);
+  border-top: 2px solid var(--rule-strong);
 }
 
-/* Section kickers: small caps mono, wide tracking, with a short accent
-   dash in front. Set on every "Signal acquired" style line. */
 .kicker {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 11px;
@@ -156,43 +153,39 @@ body {
   content: "";
   width: 1.8em;
   height: 1px;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), var(--accent-3));
 }
 
-/* Figures set the way a print annual sets them: oldstyle-adjacent, tight,
-   and always tabular so a counting animation does not jitter the layout. */
 .figure {
   font-family: var(--font-disp), ui-serif, Georgia, serif;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
 }
 
-/* ── Finish system ─────────────────────────────────────────────────────────────
-   One hover language for the whole site. In an editorial theme that cannot
-   be a lift and a shadow, because nothing here is raised. It is the rule
-   going to full ink instead: the box asserts itself without moving.
-
-   border-color and background only, so it never triggers layout. */
+/* ── Finish system ─────────────────────────────────────────────────────────
+   One hover language for the whole site. Glass lifts. Transform and border
+   only, so it never triggers layout. */
 .motion-tile,
 .lift,
 .surface,
 .surface-quiet {
   transition:
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 300ms ease,
     background-color 300ms ease,
-    color 300ms ease;
+    box-shadow 340ms ease;
 }
 
 @media (hover: hover) {
   .motion-tile:hover,
   .lift:hover {
+    transform: translateY(-3px);
     border-color: var(--rule-strong);
-    background-color: rgba(242, 236, 225, 0.5);
+    background-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.44);
   }
 }
 
-/* Links read as links: an underline that draws itself from the left rather
-   than appearing all at once. background-size only. */
 .link-underline {
   background-image: linear-gradient(var(--accent), var(--accent));
   background-repeat: no-repeat;
@@ -207,31 +200,23 @@ body {
   }
 }
 
-/* Press state for every real button and link styled as one.
-
-   The journey rail is excluded: its segments carry an inline height driven
-   by the rail's own ignition value every frame, and a blanket active
-   transform would fight it. */
+/* The journey rail is excluded: its segments carry inline values driven every
+   frame, and a blanket active transform would fight them. */
 a:active,
 button:active:not(.journey-hud button) {
   transform: scale(0.99);
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-2);
   outline-offset: 3px;
-  border-radius: 0;
+  border-radius: 6px;
 }
 
-/* ── Running head ──────────────────────────────────────────────────────────────
-   The folio line under the masthead. Collapsed to zero height at rest and
-   opened when the masthead is hovered or focused. Animating
-   grid-template-rows between 0fr and 1fr expands to the content's natural
-   height without hard coding a pixel value, which would break the moment a
-   channel description ran to two lines.
-
-   The trigger is the header rather than the rail itself. The rail is a 1px
-   rule, and asking anyone to hover a 1px rule is asking them not to. */
+/* ── Running head ──────────────────────────────────────────────────────────
+   Collapsed to zero height at rest and opened when the masthead is hovered
+   or focused. Animating grid-template-rows between 0fr and 1fr expands to
+   the content's natural height without hard coding a pixel value. */
 .hud-drawer {
   display: grid;
   grid-template-rows: 0fr;
@@ -254,13 +239,53 @@ button:active:not(.journey-hud button) {
   }
 }
 
+/* ── Aurora field ──────────────────────────────────────────────────────────
+   Three slow masses behind everything. Transform only, GPU only. */
+@keyframes drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6vw, -4vh, 0) scale(1.15);
+  }
+}
+
+@keyframes drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+  50% {
+    transform: translate3d(-7vw, 5vh, 0) scale(0.9);
+  }
+}
+
+.aurora {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+}
+
+.aurora-a {
+  animation: drift-a 26s ease-in-out infinite;
+}
+
+.aurora-b {
+  animation: drift-b 32s ease-in-out infinite;
+}
+
 /* ── Marquee ───────────────────────────────────────────────────────────────
    The track holds its sequence twice and translates by exactly half its own
-   width, which is the whole trick of a seamless loop. Duration is tuned per
-   row in the keyframe distance, direction by the reverse class. */
+   width, which is the whole trick of a seamless loop. */
 @keyframes marquee-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 .marquee-track {
@@ -277,12 +302,9 @@ button:active:not(.journey-hud button) {
 }
 
 /* ── Ledger ────────────────────────────────────────────────────────────────
-   The growth bars. In the previous theme these carried a travelling
-   shimmer, which was the one piece of the old finish that survived on its
-   own merits. It does not survive here: a light pass across a printed bar
-   chart is the single most obviously screen-native thing a page can do,
-   and this theme is committed. The bar is now solid ink with an accent
-   leading edge, which is how a printed chart marks its own end. */
+   The growth bars. The leading edge marks where the bar ends, and in a glass
+   setting it is allowed to glow, which is the one place that reads as a
+   live readout rather than as decoration. */
 .ledger-fill::after {
   content: "";
   position: absolute;
@@ -290,7 +312,8 @@ button:active:not(.journey-hud button) {
   bottom: 0;
   right: 0;
   width: 2px;
-  background: var(--accent);
+  background: var(--accent-2);
+  box-shadow: 0 0 12px var(--accent-2);
 }
 
 @media (prefers-reduced-motion: reduce) {
