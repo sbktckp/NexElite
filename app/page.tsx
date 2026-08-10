@@ -24,6 +24,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
@@ -288,7 +289,7 @@ export default function Home() {
               The full lockup carries a tagline and a rule under it, neither
               of which survives at masthead height, so only the mark comes
               across and the serif keeps saying the name. */}
-          <a href="/" aria-label="NexElite Media, home" className="flex items-center gap-2.5">
+          <Link href="/" aria-label="NexElite Media, home" className="flex items-center gap-2.5">
             <Image
               src="/mark.png"
               alt=""
@@ -303,7 +304,7 @@ export default function Home() {
             >
               NexElite<span style={{ color: "var(--accent)" }}>.</span>
             </span>
-          </a>
+          </Link>
           <a
             href="mailto:nexelitemedia@gmail.com"
             className="link-underline font-tech text-[11px] sm:text-xs font-bold uppercase tracking-[0.18em] whitespace-nowrap"
