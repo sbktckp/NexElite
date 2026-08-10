@@ -1,14 +1,45 @@
 @import "tailwindcss";
 
+/* ──────────────────────────────────────────────────────────────────────────
+   NexElite Media, editorial print theme
+
+   The whole site is set like a printed annual: warm paper, one ink, one
+   accent, hairline rules, and typography doing the work that a background
+   effect used to do. Nothing blurs, nothing floats, nothing glows.
+
+   Two rules kept this coherent while it was being built:
+
+     1. Surfaces are named by role, never by material. Components ask for
+        .surface, .surface-lead, .surface-quiet. Retheming the entire site
+        is then a change to this file alone, which is exactly why the last
+        theme swap touched fourteen components and this one need not.
+     2. Colour lives in the tokens below and nowhere else. Components carry
+        var(--ink), var(--accent) and so on, no hex literals.
+   ────────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --ink: #ffffff;
-  --tint: #eaf6ff;
-  --phosphor: #2f5d7c;
-  --dim: #4d6577;
-  --cyan: #7ec8e3;
-  --sand: #d9b98a;
-  --mist: #b6c7d6;
-  --line: rgba(47, 93, 124, 0.14);
+  /* Paper. Warm, never pure white; pure white on a screen reads as a blank
+     document rather than as stock. */
+  --paper: #fbf8f3;
+  --paper-2: #f2ece1;
+
+  /* Ink. Near black with warmth in it, so it sits on the paper instead of
+     punching a hole through it. */
+  --ink: #17140f;
+  --body: #4a443c;
+  --muted: #8a8177;
+
+  /* One accent, used sparingly: kickers, rules that need emphasis, the
+     leading edge of a data bar. A second earth tone backs it up. */
+  --accent: #b23a21;
+  --accent-2: #8a7a5c;
+
+  /* Hairlines. Two weights only, and the heavier one is still 1px. */
+  --rule: rgba(23, 20, 15, 0.14);
+  --rule-strong: rgba(23, 20, 15, 0.32);
+
+  /* The measure. Long-form copy never exceeds this. */
+  --measure: 34rem;
 }
 
 /* NOTE: do NOT add a global `* { margin:0; padding:0 }` reset here.
@@ -18,8 +49,8 @@
 
 html,
 body {
-  background: var(--ink);
-  color: var(--phosphor);
+  background: var(--paper);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -30,67 +61,177 @@ body {
 }
 
 ::selection {
-  background: var(--cyan);
-  color: #09121c;
+  background: var(--ink);
+  color: var(--paper);
 }
 
+/* Display face is a serif with real contrast, set tight and large. That
+   single choice carries most of the theme; everything else is restraint. */
 .font-disp {
-  font-family: var(--font-disp), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-disp), ui-serif, Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .font-tech {
   font-family: var(--font-mono), ui-monospace, monospace;
 }
 
-/* Subtle paper/scan texture, kept far lighter than the old CRT overlay
-   so it reads as depth, not dirt. */
+/* Paper grain. A printed page is never flat, and the difference between
+   this at 3% and nothing at all is the difference between stock and a
+   blank div. Fixed, so it does not scroll with the content, exactly as
+   the texture of a sheet does not move under the ink. */
 .tex::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(47, 93, 124, 0.028) 0 1px,
-    transparent 1px 4px
-  );
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 
-@keyframes drift {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(18px, -14px) rotate(90deg); }
-  50% { transform: translate(-6px, 20px) rotate(180deg); }
-  75% { transform: translate(-20px, -10px) rotate(270deg); }
-  100% { transform: translate(0, 0) rotate(360deg); }
+/* ── Surfaces ───────────────────────────────────────────────────────────────────
+   A card in print is not a raised object. It is an area fenced by a rule.
+   So: no shadow, no blur, no radius. The only variables are how much the
+   fill differs from the paper and how heavy the fence is. */
+
+.surface {
+  position: relative;
+  background: transparent;
+  border: 1px solid var(--rule);
 }
 
-.animate-drift {
-  animation: drift linear infinite;
+/* Where a block needs to read as set apart from the page rather than
+   simply enclosed by it: a tint, still no shadow. */
+.surface-quiet {
+  position: relative;
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
 }
 
-@keyframes sheen {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+/* The lead surface, for anything that floats above the page and must stay
+   legible over whatever scrolls beneath: header, HUD, sticky CTA, footer.
+   This is the one place the paper goes opaque, because a transparent
+   floating bar over moving type is unreadable at any tint. */
+.surface-lead {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
 }
 
-.sheen {
-  background-image: linear-gradient(
-    100deg,
-    transparent 20%,
-    rgba(126, 200, 227, 0.35) 45%,
-    rgba(217, 185, 138, 0.3) 55%,
-    transparent 80%
-  );
-  background-size: 200% 100%;
-  animation: sheen 7s linear infinite;
+/* Accent surface: the accent as a top rule rather than as a fill. A block
+   of colour would shout; a 2px rule at the top of the box says the same
+   thing at conversational volume. */
+.surface-accent {
+  border-top: 2px solid var(--accent);
 }
 
-/* HUD detail drawer.
-   Collapsed to zero height at rest and opened on hover. Animating
+/* ── Rules and kickers ───────────────────────────────────────────────────────────
+   The two typographic devices the whole layout leans on. */
+
+.rule {
+  border-top: 1px solid var(--rule);
+}
+
+.rule-heavy {
+  border-top: 2px solid var(--ink);
+}
+
+/* Section kickers: small caps mono, wide tracking, with a short accent
+   dash in front. Set on every "Signal acquired" style line. */
+.kicker {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7em;
+}
+
+.kicker::before {
+  content: "";
+  width: 1.8em;
+  height: 1px;
+  background: var(--accent);
+}
+
+/* Figures set the way a print annual sets them: oldstyle-adjacent, tight,
+   and always tabular so a counting animation does not jitter the layout. */
+.figure {
+  font-family: var(--font-disp), ui-serif, Georgia, serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+/* ── Finish system ─────────────────────────────────────────────────────────────
+   One hover language for the whole site. In an editorial theme that cannot
+   be a lift and a shadow, because nothing here is raised. It is the rule
+   going to full ink instead: the box asserts itself without moving.
+
+   border-color and background only, so it never triggers layout. */
+.motion-tile,
+.lift,
+.surface,
+.surface-quiet {
+  transition:
+    border-color 300ms ease,
+    background-color 300ms ease,
+    color 300ms ease;
+}
+
+@media (hover: hover) {
+  .motion-tile:hover,
+  .lift:hover {
+    border-color: var(--rule-strong);
+    background-color: rgba(242, 236, 225, 0.5);
+  }
+}
+
+/* Links read as links: an underline that draws itself from the left rather
+   than appearing all at once. background-size only. */
+.link-underline {
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) {
+  .link-underline:hover {
+    background-size: 100% 1px;
+  }
+}
+
+/* Press state for every real button and link styled as one.
+
+   The journey rail is excluded: its segments carry an inline height driven
+   by the rail's own ignition value every frame, and a blanket active
+   transform would fight it. */
+a:active,
+button:active:not(.journey-hud button) {
+  transform: scale(0.99);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 0;
+}
+
+/* ── Running head ──────────────────────────────────────────────────────────────
+   The folio line under the masthead. Collapsed to zero height at rest and
+   opened when the masthead is hovered or focused. Animating
    grid-template-rows between 0fr and 1fr expands to the content's natural
-   height without hard coding a pixel value, and the panel is anchored to the
-   bottom of the viewport so it grows upward and shifts nothing above it. */
+   height without hard coding a pixel value, which would break the moment a
+   channel description ran to two lines.
+
+   The trigger is the header rather than the rail itself. The rail is a 1px
+   rule, and asking anyone to hover a 1px rule is asking them not to. */
 .hud-drawer {
   display: grid;
   grid-template-rows: 0fr;
@@ -105,65 +246,12 @@ body {
 }
 
 @media (hover: hover) {
-  .journey-hud:hover .hud-drawer,
-  .journey-hud:focus-within .hud-drawer {
+  header:hover .hud-drawer,
+  header:focus-within .hud-drawer {
     grid-template-rows: 1fr;
     opacity: 1;
     padding-top: 8px;
   }
-}
-
-/* Directional light.
-   app/page.tsx sets --scrim-shift on the root as stages come into view, and
-   GlassField's top layer carries this class, so the bright part of the field
-   slides away from whichever side the copy currently sits on. The transform
-   is what animates, not the gradient, because gradient colour stop positions
-   do not interpolate between values. */
-.scrim {
-  transform: translateX(var(--scrim-shift, 0px));
-  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
-}
-
-/* ── Finish system ─────────────────────────────────────────────────────────
-   One hover language for every card on the page, so the process tiles, the
-   impact cards, and the ledger all answer the cursor the same way: a small
-   rise, a brighter edge, a deeper shadow. Uniformity is what reads as
-   premium; five different hover behaviours read as five components bolted
-   together. transform and box-shadow only, so it never triggers layout. */
-.motion-tile,
-.lift {
-  transition:
-    transform 340ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 340ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 340ms ease;
-}
-
-@media (hover: hover) {
-  .motion-tile:hover,
-  .lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 24px 48px -20px rgba(47, 93, 124, 0.45);
-    border-color: rgba(126, 200, 227, 0.75);
-  }
-}
-
-/* Press state for every real button and link styled as one. The 0.98 dip
-   is the tactile half of the hover rise.
-
-   The journey rail is excluded: its segments carry an inline scaleY driven
-   by the rail's own ignition value every frame, and a blanket active
-   transform would fight it. */
-a:active,
-button:active:not(.journey-hud button) {
-  transform: scale(0.98);
-}
-
-/* Focus that matches the brand instead of the browser default. */
-:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 3px;
-  border-radius: 4px;
 }
 
 /* ── Marquee ───────────────────────────────────────────────────────────────
@@ -176,34 +264,33 @@ button:active:not(.journey-hud button) {
 }
 
 .marquee-track {
-  animation: marquee-scroll 36s linear infinite;
+  animation: marquee-scroll 42s linear infinite;
 }
 
 .marquee-track.marquee-reverse {
   animation-direction: reverse;
-  animation-duration: 44s;
+  animation-duration: 52s;
 }
 
 .marquee:hover .marquee-track {
   animation-play-state: paused;
 }
 
-/* ── Ledger shimmer ────────────────────────────────────────────────────────
-   A slow light pass along the filled growth bars, so a settled ledger still
-   reads as live instrumentation rather than a screenshot. Runs on the
-   ::after of the fill, background-position only. */
+/* ── Ledger ────────────────────────────────────────────────────────────────
+   The growth bars. In the previous theme these carried a travelling
+   shimmer, which was the one piece of the old finish that survived on its
+   own merits. It does not survive here: a light pass across a printed bar
+   chart is the single most obviously screen-native thing a page can do,
+   and this theme is committed. The bar is now solid ink with an accent
+   leading edge, which is how a printed chart marks its own end. */
 .ledger-fill::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    100deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.45) 50%,
-    transparent 70%
-  );
-  background-size: 250% 100%;
-  animation: sheen 4.5s ease-in-out infinite;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+  background: var(--accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -214,248 +301,5 @@ button:active:not(.journey-hud button) {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-/* ── Glass ─────────────────────────────────────────────────────────────────
-   The surface language for the whole site, turned up: thick, wet, obviously
-   a material. Five things stacked, and every one of them is doing work.
-
-     1. It refracts something. components/GlassField.tsx puts saturated
-        light and a fine grid behind everything so the blur has content to
-        bend. Without that layer none of this reads.
-     2. It saturates hard. Blur alone desaturates; pushing saturation and a
-        touch of contrast back up is what turns fog into glass.
-     3. It has a lit edge. A bright specular hairline on the top lip and a
-        second, dimmer one bouncing off the bottom, because a real pane
-        catches light twice.
-     4. It splits colour. A faint cyan/sand fringe on the border, which is
-        what thick glass does to light passing through its edge. This is the
-        detail that reads as expensive rather than as a blur filter.
-     5. It casts far. A wide low shadow plus a coloured bloom underneath.
-
-   All of it is backdrop-filter, border, box-shadow and one pseudo element.
-   Nothing here triggers layout or paint on the page beneath, so a screen
-   full of these still scrolls at frame rate.
-   ────────────────────────────────────────────────────────────────────────── */
-
-:root {
-  /* One knob for the whole system. Turn this down if it ever gets loud. */
-  --glass-blur: 34px;
-  --glass-sat: 220%;
-  --glass-tint: 0.4;
-}
-
-.glass,
-.glass-thin,
-.glass-thick {
-  position: relative;
-  isolation: isolate;
-}
-
-.glass {
-  background:
-    /* Top left sheen, the light source. Diagonal, because a flat wash
-       reads as paint and a gradient reads as a surface. */
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.75) 0%,
-      rgba(255, 255, 255, 0.28) 42%,
-      rgba(255, 255, 255, 0.5) 100%
-    );
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat)) contrast(105%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat)) contrast(105%);
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  box-shadow:
-    /* the lit top lip */
-    inset 0 1px 0 rgba(255, 255, 255, 0.98),
-    /* light bouncing back off the underside */
-    inset 0 -1px 0 rgba(255, 255, 255, 0.42),
-    /* thickness: a soft interior wall on the leading edge */
-    inset 2px 0 12px -8px rgba(126, 200, 227, 0.9),
-    inset -2px 0 12px -8px rgba(217, 185, 138, 0.7),
-    /* the cast */
-    0 28px 70px -34px rgba(47, 93, 124, 0.62),
-    /* coloured bloom, so the pane looks lit rather than pasted */
-    0 6px 30px -20px rgba(126, 200, 227, 0.85);
-}
-
-/* Thinner glass for chips, pills and anything small. Small elements with
-   heavy blur read as smudges, so blur scales down with the surface while
-   the edge treatment stays. */
-.glass-thin {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.68) 0%,
-    rgba(255, 255, 255, 0.3) 60%,
-    rgba(255, 255, 255, 0.45) 100%
-  );
-  backdrop-filter: blur(18px) saturate(200%);
-  -webkit-backdrop-filter: blur(18px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.35),
-    0 10px 26px -16px rgba(47, 93, 124, 0.55);
-}
-
-/* Thick glass for anything floating above the page that must stay legible
-   over any content: header, HUD, sticky CTA, footer. */
-.glass-thick {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.86) 0%,
-    rgba(255, 255, 255, 0.5) 45%,
-    rgba(255, 255, 255, 0.68) 100%
-  );
-  backdrop-filter: blur(52px) saturate(230%) contrast(106%);
-  -webkit-backdrop-filter: blur(52px) saturate(230%) contrast(106%);
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.5),
-    inset 0 0 24px -14px rgba(126, 200, 227, 0.9),
-    0 24px 60px -28px rgba(47, 93, 124, 0.6),
-    0 4px 20px -14px rgba(126, 200, 227, 0.7);
-}
-
-/* The edge.
-
-   Two layers on one pseudo element is not possible, so this does the
-   chromatic border and ::after does the specular streak.
-
-   The border trick: paint a gradient across the whole box, then mask out
-   everything except a one pixel frame using the padding box against the
-   border box. Gives a gradient border, which plain border-color cannot do. */
-.glass-edge::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  pointer-events: none;
-  background: conic-gradient(
-    from 210deg,
-    rgba(255, 255, 255, 0.95) 0deg,
-    rgba(126, 200, 227, 0.85) 70deg,
-    rgba(255, 255, 255, 0.9) 150deg,
-    rgba(217, 185, 138, 0.8) 250deg,
-    rgba(255, 255, 255, 0.95) 360deg
-  );
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  z-index: 2;
-}
-
-/* The specular streak. A soft diagonal band of light lying across the top
-   third of the pane, the reflection of whatever is lighting the room.
-   Clipped by the pane's own radius and never interactive. */
-.glass-edge::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  overflow: hidden;
-  background: linear-gradient(
-    118deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.55) 34%,
-    rgba(255, 255, 255, 0.18) 46%,
-    transparent 62%
-  );
-  opacity: 0.9;
-  z-index: 1;
-}
-
-/* Tints. Glass takes the colour of what is behind it, so these sit on top
-   of the sheen rather than replacing it. */
-.glass-cyan {
-  background:
-    linear-gradient(
-      135deg,
-      rgba(126, 200, 227, 0.42) 0%,
-      rgba(255, 255, 255, 0.32) 45%,
-      rgba(126, 200, 227, 0.22) 100%
-    );
-}
-
-.glass-sand {
-  background:
-    linear-gradient(
-      135deg,
-      rgba(217, 185, 138, 0.38) 0%,
-      rgba(255, 255, 255, 0.32) 45%,
-      rgba(217, 185, 138, 0.2) 100%
-    );
-}
-
-/* Dark glass, for anything that needs to sit as a solid object against the
-   light field rather than dissolve into it. */
-.glass-dark {
-  background: linear-gradient(
-    135deg,
-    rgba(9, 18, 28, 0.68) 0%,
-    rgba(9, 18, 28, 0.48) 100%
-  );
-  backdrop-filter: blur(40px) saturate(200%);
-  -webkit-backdrop-filter: blur(40px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 28px 70px -32px rgba(9, 18, 28, 0.8);
-}
-
-/* Hover: the pane tilts toward the light. Brighter sheen, tighter bloom,
-   and the specular streak slides across. Composited properties only. */
-@media (hover: hover) {
-  .glass,
-  .glass-thin,
-  .glass-thick {
-    transition:
-      box-shadow 380ms cubic-bezier(0.22, 1, 0.36, 1),
-      background-color 380ms ease;
-  }
-
-  .glass:hover,
-  .glass-thick:hover {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 1),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.55),
-      inset 0 0 30px -12px rgba(126, 200, 227, 1),
-      0 32px 80px -32px rgba(47, 93, 124, 0.66),
-      0 8px 34px -18px rgba(126, 200, 227, 1);
-  }
-
-  .glass-edge::after {
-    transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms ease;
-  }
-
-  .glass-edge:hover::after {
-    transform: translateX(14%);
-    opacity: 1;
-  }
-}
-
-/*
-  Fallback. Where backdrop-filter is unavailable, or the visitor has asked
-  for reduced transparency, every one of these panes would render as a
-  nearly invisible sheet of white on white. Going opaque loses the effect
-  and keeps the site readable, which is the right trade.
-*/
-@supports not (backdrop-filter: blur(1px)) {
-  .glass,
-  .glass-thin,
-  .glass-thick {
-    background: rgba(255, 255, 255, 0.95);
-  }
-  .glass-dark {
-    background: rgba(9, 18, 28, 0.95);
   }
 }

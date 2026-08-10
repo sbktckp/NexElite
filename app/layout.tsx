@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Space_Mono, Inter } from "next/font/google";
+import { Fraunces, Space_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { SITE, SITE_URL, organizationJsonLd } from "@/lib/site";
 
-const disp = Bricolage_Grotesque({
+/*
+  The display face carries the editorial theme almost single-handedly.
+  Fraunces is a high-contrast serif with a soft optical-size axis, which is
+  what keeps a 86px headline from looking like a 16px one scaled up.
+  Loaded at four weights because the headlines run from 600 to 900 and a
+  variable request for the whole range costs more than the four we use.
+*/
+const disp = Fraunces({
   variable: "--font-disp",
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
+  weight: ["400", "600", "700", "900"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -56,7 +64,7 @@ export const metadata: Metadata = {
 // Colours the browser chrome on mobile so the page does not sit inside a
 // mismatched system bar.
 export const viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#fbf8f3",
   colorScheme: "light" as const,
 };
 

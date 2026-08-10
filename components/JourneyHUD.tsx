@@ -9,13 +9,18 @@ import { scrollFraction, scrollToFraction } from "@/lib/scroll";
 /**
  * JourneyHUD
  *
- * The rail at the bottom: where you are on the page, which channel that
- * puts you in front of, and a way to jump between them.
+ * The reading position, set as the masthead's own bottom rule.
  *
- * It used to read live state written by the Three.js corridor every frame.
- * With the corridor gone, document scroll is the only clock, which is
- * simpler and honest: the rail now measures the thing the visitor is
- * actually moving.
+ * It used to be a floating card at the bottom of the viewport, which meant
+ * the page carried two persistent chrome elements at opposite edges and the
+ * rule under the masthead was doing nothing. Now they are one object: the
+ * hairline that closes the masthead IS the progress bar, filling with ink
+ * as you read and ticked into eight segments, one per channel. Nothing
+ * floats and nothing is added to the layout, which is why it reads as part
+ * of the page rather than as an overlay on it.
+ *
+ * Rendered inside <header> in app/page.tsx. It positions itself against
+ * that header, so it must not be mounted anywhere else.
  *
  * ── Why this reads smooth ──────────────────────────────────────────────
  * Split by rate of change. Continuous values, progress and ignition, are
@@ -51,7 +56,7 @@ export function JourneyHUD() {
       const scaled = progress * N;
       const nextGate = Math.min(N - 1, Math.floor(scaled));
 
-      // Peaks at the centre of each segment, so the active pip breathes as
+      // Peaks at the centre of each segment, so the active tick thickens as
       // you pass through it rather than snapping at the boundary.
       const ignite = 1 - Math.abs((scaled % 1) - 0.5) * 2;
 
@@ -80,46 +85,30 @@ export function JourneyHUD() {
   return (
     <div
       ref={rootRef}
-      className="journey-hud fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[min(92vw,520px)]"
+      className="journey-hud absolute inset-x-0 bottom-0"
       style={{ ["--p" as string]: "0", ["--ig" as string]: "0" }}
     >
-      <div
-        className="glass-thick glass-edge rounded-2xl px-4 py-2.5"
-        style={{
-          // The service tone bleeds through the pane as you cross into it.
-          // Everything else about the panel is fixed, so this is the only
-          // thing that reads as movement when a gate changes.
-          boxShadow:
-            "inset 0 1px 0 rgba(255,255,255,0.95)," +
-            " 0 18px 48px -24px rgba(47,93,124,0.45)," +
-            ` 0 0 calc(16px + var(--ig) * 28px) -14px ${svc.tone}`,
-        }}
-      >
-        {/* Resting state is two rows: a label line and the rail. The detail
-            lives in the hover drawer below, which grows upward from a bottom
-            anchored element so nothing above it shifts. */}
-        <div className="flex items-center justify-between gap-3 mb-1.5">
-          <span
-            className="text-[12px] sm:text-[13px] font-semibold truncate"
-            style={{ color: "#2F5D7C" }}
-          >
-            {svc.name}
-          </span>
-          <span
-            className="font-tech text-[10px] sm:text-[11px] shrink-0 tabular-nums tracking-wider"
-            style={{ color: "rgba(47,93,124,0.55)" }}
-          >
-            {String(gate + 1).padStart(2, "0")}/{String(N).padStart(2, "0")}
-            <span style={{ color: "rgba(47,93,124,0.32)" }}> · </span>
-            {pct}%
-          </span>
-        </div>
-
+      {/*
+        The rule itself. Two layers: the full-width hairline that the
+        masthead needs anyway, and the ink fill scaled across it. Scaling a
+        single element beats animating eight widths, and transform is the
+        one property that never costs layout.
+      */}
+      <div className="relative h-px w-full" style={{ background: "var(--rule)" }}>
         <div
-          className="flex gap-1 h-1.5"
-          role="group"
-          aria-label="Jump to a service"
-        >
+          className="absolute inset-y-0 left-0 w-full origin-left"
+          style={{
+            background: "var(--ink)",
+            transform: "scaleX(var(--p))",
+          }}
+        />
+
+        {/*
+          Channel ticks, sitting on the rule. Each is a click target the
+          full height of the header strip below it, so they are reachable
+          without being visible chrome: the visible part is a 1px mark.
+        */}
+        <div className="absolute inset-x-0 -top-2 flex h-4">
           {SERVICES.map((s, i) => {
             const active = i === gate;
             return (
@@ -129,42 +118,61 @@ export function JourneyHUD() {
                 title={s.name}
                 aria-label={`Go to ${s.name}`}
                 aria-current={active ? "step" : undefined}
-                className="relative flex-1 rounded-full overflow-hidden hover:scale-y-[2] focus-visible:outline-2 focus-visible:outline-offset-4"
-                style={{
-                  background: "rgba(47,93,124,0.14)",
-                  outlineColor: s.tone,
-                  transition: "transform 200ms ease",
-                  // Continuous, so the active pip tracks ignition at display
-                  // rate rather than stepping every 80ms.
-                  ...(active
-                    ? {
-                        transform: "scaleY(calc(1 + var(--ig) * 0.9))",
-                        boxShadow: `0 0 calc(4px + var(--ig) * 10px) ${s.tone}`,
-                      }
-                    : null),
-                }}
+                className="relative flex-1 focus-visible:outline-2 focus-visible:outline-offset-2"
               >
-                <div
-                  className="absolute inset-y-0 left-0"
-                  style={{
-                    width: `clamp(0%, calc(var(--p) * ${N * 100}% - ${i * 100}%), 100%)`,
-                    background: `linear-gradient(90deg, ${s.tone}, #D9B98A)`,
-                  }}
-                />
+                {/* The mark. Hidden on the first tick, which would otherwise
+                    print a stray rule against the left margin. */}
+                {i > 0 && (
+                  <span
+                    className="absolute left-0 bottom-0 w-px"
+                    style={{
+                      // Passed segments mark in ink, ahead of you in rule.
+                      background: i <= gate ? "var(--ink)" : "var(--rule-strong)",
+                      // The tick you are inside grows as you cross it.
+                      height: active ? "calc(5px + var(--ig) * 5px)" : "4px",
+                    }}
+                  />
+                )}
+                {active && (
+                  <span
+                    className="absolute bottom-0 left-0 right-0"
+                    style={{
+                      height: "2px",
+                      background: s.tone,
+                    }}
+                  />
+                )}
               </button>
             );
           })}
         </div>
+      </div>
 
-        {/* Collapsed to zero height until hover. grid-template-rows animates
-            between 0fr and 1fr, so the drawer opens without hard coding a
-            height that would break on a long description. */}
-        <div className="hud-drawer">
+      {/*
+        Running head. Set like the folio line of a magazine: section name on
+        the left, position on the right, hairline rule above. Collapsed to
+        nothing until you hover the masthead, so at rest the page shows only
+        the filled rule and the reader is never told what they can already
+        see.
+      */}
+      <div
+        className="hud-drawer"
+        style={{ background: "var(--paper)", borderBottom: "1px solid var(--rule)" }}
+      >
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 flex items-baseline justify-between gap-6 pb-2">
+          <p className="text-[12px] sm:text-[13px] leading-snug" style={{ color: "var(--body)" }}>
+            <span className="font-semibold" style={{ color: "var(--ink)" }}>
+              {svc.name}.
+            </span>{" "}
+            <span className="hidden sm:inline">{svc.description}</span>
+          </p>
           <p
-            className="text-[12px] leading-snug"
-            style={{ color: "rgba(47,93,124,0.75)" }}
+            className="font-tech text-[10px] sm:text-[11px] shrink-0 tabular-nums tracking-[0.16em]"
+            style={{ color: "var(--muted)" }}
           >
-            {svc.description}
+            {String(gate + 1).padStart(2, "0")}/{String(N).padStart(2, "0")}
+            <span style={{ color: "var(--rule-strong)" }}> · </span>
+            {pct}%
           </p>
         </div>
       </div>
