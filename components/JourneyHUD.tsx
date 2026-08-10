@@ -16,8 +16,14 @@ import { scrollFraction, scrollToFraction } from "@/lib/scroll";
  * section names, they are real navigation, and the fill still reads as
  * progress.
  *
- * Rendered inside <header> in app/page.tsx. It positions itself against that
- * header, so it must not be mounted anywhere else.
+ * It sits in the header's normal flow rather than absolutely at its bottom
+ * edge. Absolute positioning meant the drawer opened over the nameplate and
+ * the percentage landed on top of the contact link. In flow, opening the
+ * drawer grows the header downward, which is the only direction that cannot
+ * collide with anything.
+ *
+ * Rendered inside <header> in app/page.tsx. It must not be mounted anywhere
+ * else.
  *
  * ── Why this reads smooth ──────────────────────────────────────────────
  * Split by rate of change. The continuous value, progress, is written to a
@@ -72,8 +78,8 @@ export function JourneyHUD() {
     };
     measure();
     window.addEventListener("resize", measure);
-    // Fonts and images settle after first paint and move every offset, so
-    // one late remeasure saves the rail from being wrong for a whole session.
+    // Fonts and images settle after first paint and move every offset, so one
+    // late remeasure saves the rail from being wrong for a whole session.
     const t = window.setTimeout(measure, 900);
 
     const off = onFrame((now) => {
@@ -112,7 +118,7 @@ export function JourneyHUD() {
   return (
     <div
       ref={rootRef}
-      className="journey-hud absolute inset-x-0 bottom-0"
+      className="journey-hud relative w-full"
       style={{ ["--p" as string]: "0" }}
     >
       {/* The rule itself. Two layers: the hairline the masthead needs anyway,
@@ -123,49 +129,48 @@ export function JourneyHUD() {
           className="absolute inset-y-0 left-0 w-full origin-left"
           style={{
             background:
-              "linear-gradient(90deg, var(--accent-3), var(--accent-2), var(--accent))",
+              "linear-gradient(90deg, var(--accent-3), var(--accent), var(--accent-2))",
             transform: "scaleX(var(--p))",
-            boxShadow: "0 0 10px rgba(53,208,216,0.5)",
+            boxShadow: "0 0 10px rgba(79,195,247,0.5)",
           }}
         />
       </div>
 
       {/* Running head. Collapsed until the masthead is hovered, so at rest the
           page shows only the filled rule and the reader is never told what
-          they can already see. */}
-      <div
-        className="hud-drawer"
-        style={{ background: "rgba(10,13,24,0.72)", borderBottom: "1px solid var(--rule)" }}
-      >
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 flex items-center justify-between gap-4 pb-2">
-          <nav className="flex items-center gap-1 overflow-x-auto" aria-label="Sections">
-            {CHAPTERS.map((c, i) => {
-              const on = i === active;
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => {
-                    const f = fractionOf(c.id);
-                    if (f !== null) scrollToFraction(f);
-                  }}
-                  aria-current={on ? "true" : undefined}
-                  className="font-tech text-[10px] sm:text-[11px] uppercase tracking-[0.16em] px-2.5 py-1 whitespace-nowrap rounded-full transition-colors"
-                  style={{
-                    color: on ? "var(--ink)" : "var(--muted)",
-                    background: on ? "rgba(255,255,255,0.09)" : "transparent",
-                  }}
-                >
-                  {c.label}
-                </button>
-              );
-            })}
-          </nav>
-          <p
-            className="font-tech text-[10px] sm:text-[11px] shrink-0 tabular-nums tracking-[0.16em]"
-            style={{ color: "var(--muted)" }}
-          >
-            {pct}%
-          </p>
+          they can already see. Always open on touch, which has no hover. */}
+      <div className="hud-drawer">
+        <div>
+          <div className="max-w-6xl mx-auto px-5 sm:px-6 flex items-center justify-between gap-4 py-2">
+            <nav className="flex items-center gap-1 overflow-x-auto" aria-label="Sections">
+              {CHAPTERS.map((c, i) => {
+                const on = i === active;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      const f = fractionOf(c.id);
+                      if (f !== null) scrollToFraction(f);
+                    }}
+                    aria-current={on ? "true" : undefined}
+                    className="font-tech text-[10px] sm:text-[11px] uppercase tracking-[0.16em] px-2.5 py-1 whitespace-nowrap rounded-full transition-colors"
+                    style={{
+                      color: on ? "var(--ink)" : "var(--muted)",
+                      background: on ? "rgba(255,255,255,0.09)" : "transparent",
+                    }}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </nav>
+            <p
+              className="font-tech text-[10px] sm:text-[11px] shrink-0 tabular-nums tracking-[0.16em]"
+              style={{ color: "var(--muted)" }}
+            >
+              {pct}%
+            </p>
+          </div>
         </div>
       </div>
     </div>

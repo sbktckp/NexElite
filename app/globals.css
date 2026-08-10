@@ -3,28 +3,43 @@
 /* ──────────────────────────────────────────────────────────────────────────
    NexElite Media, glass theme
 
+   Palette is taken from the logo: the brush stroke behind the crowned N is
+   the accent, and everything else is that blue moved around the wheel. The
+   base is the same blue taken almost to black, which is why the aurora sits
+   in the page rather than on it.
+
    Surfaces are named by role (.surface, .surface-quiet, .surface-lead) and
    colour lives only in the tokens below, so the next theme swap is this
-   file alone. Dark base, three accents, real depth.
+   file alone.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --paper: #0a0d18;
+  /* The logo blue taken to near black. Not neutral grey: the base carries
+     the same hue as the mark, so the brand colour reads as the environment
+     rather than as a sticker on it. */
+  --paper: #070d1c;
   --paper-2: rgba(255, 255, 255, 0.055);
 
-  --ink: #f4f6fd;
-  --body: rgba(244, 246, 253, 0.68);
-  --muted: rgba(244, 246, 253, 0.42);
+  --ink: #eef3ff;
+  --body: rgba(238, 243, 255, 0.68);
+  --muted: rgba(238, 243, 255, 0.42);
 
-  --accent: #ff5a3c;
-  --accent-2: #35d0d8;
-  --accent-3: #8b7cff;
+  /* The brush stroke from the lockup. */
+  --accent: #2f6be6;
+  /* Its lighter and deeper neighbours, for the aurora and for data. */
+  --accent-2: #4fc3f7;
+  --accent-3: #6d5cf0;
+
+  /* One warm, reserved for the seasonal offer. A blue call to action inside
+     a blue theme has nowhere to stand out, and an offer that does not stand
+     out is not an offer. This is the only warm value in the system. */
+  --accent-warm: #ff6b3d;
 
   --rule: rgba(255, 255, 255, 0.11);
   --rule-strong: rgba(255, 255, 255, 0.26);
 
   --glass-blur: 18px;
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.36);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --r: 16px;
   --measure: 34rem;
 }
@@ -96,7 +111,7 @@ body {
 /* Floating chrome: heavier tint so type stays legible over moving content. */
 .surface-lead {
   position: relative;
-  background: rgba(10, 13, 24, 0.62);
+  background: rgba(7, 13, 28, 0.62);
   border: 1px solid var(--rule);
   border-radius: var(--r);
   backdrop-filter: blur(24px) saturate(160%);
@@ -110,7 +125,7 @@ body {
 
 /* Masthead. Full bleed, so no radius, but the same pane material. */
 .glass-bar {
-  background: rgba(10, 13, 24, 0.68);
+  background: rgba(7, 13, 28, 0.72);
   backdrop-filter: blur(22px) saturate(160%);
   -webkit-backdrop-filter: blur(22px) saturate(160%);
   border-bottom: 1px solid var(--rule);
@@ -129,6 +144,29 @@ body {
   pointer-events: none;
 }
 
+/* ── Offer strip ─────────────────────────────────────────────────────────
+   The offer bar is the header's first child and the only element allowed to
+   use the warm accent. Scoped here rather than inline in the component so
+   the whole palette still lives in one file, which is the rule that has
+   made every theme swap cheap so far. */
+header > div:first-child {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 107, 61, 0.18),
+    rgba(109, 92, 240, 0.14),
+    rgba(79, 195, 247, 0.12)
+  ) !important;
+}
+
+header > div:first-child > span:first-child {
+  color: var(--accent-warm) !important;
+}
+
+header > div:first-child a {
+  background: var(--accent-warm) !important;
+  box-shadow: 0 4px 18px rgba(255, 107, 61, 0.34);
+}
+
 .rule {
   border-top: 1px solid var(--rule);
 }
@@ -143,7 +181,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-2);
   display: inline-flex;
   align-items: center;
   gap: 0.7em;
@@ -153,7 +191,7 @@ body {
   content: "";
   width: 1.8em;
   height: 1px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-3));
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
 }
 
 .figure {
@@ -182,12 +220,12 @@ body {
     transform: translateY(-3px);
     border-color: var(--rule-strong);
     background-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.44);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.46);
   }
 }
 
 .link-underline {
-  background-image: linear-gradient(var(--accent), var(--accent));
+  background-image: linear-gradient(var(--accent-2), var(--accent-2));
   background-repeat: no-repeat;
   background-position: 0 100%;
   background-size: 0% 1px;
@@ -216,7 +254,11 @@ button:active:not(.journey-hud button) {
 /* ── Running head ──────────────────────────────────────────────────────────
    Collapsed to zero height at rest and opened when the masthead is hovered
    or focused. Animating grid-template-rows between 0fr and 1fr expands to
-   the content's natural height without hard coding a pixel value. */
+   the content's natural height without hard coding a pixel value.
+
+   The rail sits in the header's normal flow, so this opens the header
+   downward instead of drawing over the nameplate, which is what it was
+   doing while it was absolutely positioned. */
 .hud-drawer {
   display: grid;
   grid-template-rows: 0fr;
@@ -235,7 +277,15 @@ button:active:not(.journey-hud button) {
   header:focus-within .hud-drawer {
     grid-template-rows: 1fr;
     opacity: 1;
-    padding-top: 8px;
+  }
+}
+
+/* Touch has no hover, so the rail would be permanently unreachable. Below
+   the hover breakpoint it is simply always open. */
+@media (hover: none) {
+  .hud-drawer {
+    grid-template-rows: 1fr;
+    opacity: 1;
   }
 }
 
@@ -303,8 +353,8 @@ button:active:not(.journey-hud button) {
 
 /* ── Ledger ────────────────────────────────────────────────────────────────
    The growth bars. The leading edge marks where the bar ends, and in a glass
-   setting it is allowed to glow, which is the one place that reads as a
-   live readout rather than as decoration. */
+   setting it is allowed to glow, which is the one place that reads as a live
+   readout rather than as decoration. */
 .ledger-fill::after {
   content: "";
   position: absolute;
@@ -314,6 +364,20 @@ button:active:not(.journey-hud button) {
   width: 2px;
   background: var(--accent-2);
   box-shadow: 0 0 12px var(--accent-2);
+}
+
+/* ── Sticky CTA clearance ───────────────────────────────────────────────
+   StickyCTA floats at the bottom right for the whole page, and the footer is
+   the one block that scrolls all the way under it. Reserving the space here
+   is why the copyright line no longer sits beneath a button. */
+footer {
+  padding-bottom: 6.5rem;
+}
+
+@media (min-width: 768px) {
+  footer {
+    padding-bottom: 3rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
