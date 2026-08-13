@@ -4,7 +4,7 @@ import "./globals.css";
 import { SITE, SITE_URL, organizationJsonLd } from "@/lib/site";
 
 /*
-  The display face carries the editorial theme almost single-handedly.
+  The display face carries the glass theme almost single-handedly.
   Fraunces is a high-contrast serif with a soft optical-size axis, which is
   what keeps a 86px headline from looking like a 16px one scaled up.
   Loaded at four weights because the headlines run from 600 to 900 and a
@@ -43,17 +43,14 @@ export const metadata: Metadata = {
   description: SITE.description,
   alternates: { canonical: "/" },
   /*
-    Favicons are served from /public rather than app/icon.png so that one
-    source file backs both the tab icon and the iOS home screen icon.
-    The mark is the crowned N lifted out of the full lockup: the lockup
-    itself is unreadable below about 64px, and a favicon is 16.
-    Both sit on the paper cream so the black mark survives a dark tab bar.
+    No `icons` block on purpose. app/icon.png and app/apple-icon.png are
+    picked up by Next's file convention and get their own hashed URLs and
+    link tags for free. Declaring icons here overrides that convention, and
+    the paths it used to declare (/icon.png, /apple-icon.png) do not exist
+    in public/, so the favicon resolved to a 404 while the real files sat
+    unused in app/. The mark is the crowned N lifted out of the full
+    lockup: the lockup is unreadable below about 64px, and a favicon is 16.
   */
-  icons: {
-    icon: [{ url: "/icon.png", type: "image/png", sizes: "512x512" }],
-    shortcut: [{ url: "/icon.png", type: "image/png" }],
-    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
-  },
   openGraph: {
     type: "website",
     siteName: SITE.name,
@@ -78,10 +75,12 @@ export const metadata: Metadata = {
 };
 
 // Colours the browser chrome on mobile so the page does not sit inside a
-// mismatched system bar.
+// mismatched system bar. Both values track --paper in globals.css: the base
+// is near black, so a light scheme here would hand the page white scrollbars
+// and white form controls inside a dark glass theme.
 export const viewport = {
-  themeColor: "#fbf8f3",
-  colorScheme: "light" as const,
+  themeColor: "#070d1c",
+  colorScheme: "dark" as const,
 };
 
 export default function RootLayout({
